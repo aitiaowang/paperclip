@@ -7,6 +7,12 @@ import {
 } from "./company-routes";
 
 describe("company routes", () => {
+  it("keeps workbench in the selected company", () => {
+    expect(isBoardPathWithoutPrefix("/workbench")).toBe(true);
+    expect(applyCompanyPrefix("/workbench", "PAP")).toBe("/PAP/workbench");
+    expect(toCompanyRelativePath("/PAP/workbench")).toBe("/workbench");
+  });
+
   it("treats the task-list alias as an unprefixed board route", () => {
     expect(isBoardPathWithoutPrefix("/tasks")).toBe(true);
     expect(extractCompanyPrefixFromPath("/tasks")).toBeNull();
