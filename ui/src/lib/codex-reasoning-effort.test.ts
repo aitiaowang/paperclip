@@ -1,3 +1,6 @@
+import { beforeEach as beforeEachLocale } from "vitest";
+import { changeLocale } from "@/i18n";
+beforeEachLocale(() => changeLocale("en"));
 // @vitest-environment node
 
 import { describe, expect, it } from "vitest";

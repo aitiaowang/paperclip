@@ -1,3 +1,4 @@
+import { t, useTranslation } from "@/i18n";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -60,6 +61,7 @@ export function FingerprintChip({
   length: number | null;
   className?: string;
 }) {
+  useTranslation();
   const { pushToast } = useToastActions();
   const label = fingerprintLabel(fingerprint, length);
   if (!fingerprint) {
@@ -76,10 +78,10 @@ export function FingerprintChip({
       type="button"
       onClick={() => {
         copyTextToClipboard(full)
-          .then(() => pushToast({ title: "Fingerprint copied", tone: "success" }))
-          .catch(() => pushToast({ title: "Couldn’t copy fingerprint", tone: "error" }));
+          .then(() => pushToast({ title: t("runtimeModules.extra82"), tone: "success" }))
+          .catch(() => pushToast({ title: t("runtimeModules.copyFailed"), tone: "error" }));
       }}
-      title={`Copy full digest — ${full}`}
+      title={t("runtimeModules.copyDigest", { digest: full })}
       className={cn(
         "inline-flex items-center gap-1 font-mono hover:text-foreground",
         className,
@@ -106,9 +108,10 @@ export function ProposalJustification({
   justification: string;
   className?: string;
 }) {
+  useTranslation();
   return (
     <div className={cn("space-y-0.5", className)}>
-      <p className="text-(length:--text-micro) text-muted-foreground">Reason given by the agent</p>
+      <p className="text-(length:--text-micro) text-muted-foreground">{t("runtimeModules.extra83")}</p>
       <p className="whitespace-pre-wrap break-words text-xs text-foreground/80">
         “{justification}”
       </p>
@@ -124,6 +127,7 @@ export function AgentRefChip({
   agent: SecretProposalAgentRef;
   className?: string;
 }) {
+  useTranslation();
   return (
     <span className={cn("inline-flex min-w-0 items-center gap-1", className)}>
       <AgentAvatar agent={agent} size={16} className="h-3.5 w-3.5 shrink-0 text-muted-foreground"/>
@@ -134,6 +138,7 @@ export function AgentRefChip({
 
 /** Env-var vs API-access delivery badge for a binding `configPath`. */
 export function DeliveryBadge({ configPath }: { configPath: string | null }) {
+  useTranslation();
   const mode = deliveryModeForConfigPath(configPath);
   const isEnv = mode === "env";
   const isApi = mode === "api";
@@ -155,6 +160,7 @@ export function DeliveryBadge({ configPath }: { configPath: string | null }) {
 
 /** Distinct "Proposed" pill used wherever a proposal is inlined among live rows. */
 export function ProposedBadge({ className }: { className?: string }) {
+  useTranslation();
   return (
     <Badge
       variant="outline"
@@ -164,8 +170,7 @@ export function ProposedBadge({ className }: { className?: string }) {
         className,
       )}
     >
-      <ShieldAlert className="size-3" /> Proposed
-    </Badge>
+      <ShieldAlert className="size-3" />{t("runtimeModules.extra86")}</Badge>
   );
 }
 
@@ -186,9 +191,9 @@ export function bindingSecretLabel(proposal: SecretProposalView): {
 }
 
 function readableError(error: unknown): string {
-  if (error instanceof ApiError) return error.message || `Request failed: ${error.status}`;
+  if (error instanceof ApiError) return error.message || t("runtimeModules.requestFailed", { status: error.status });
   if (error instanceof Error) return error.message;
-  return "Something went wrong. Try again.";
+  return t("runtimeModules.extra87");
 }
 
 /* -------------------------------------------------------------------------- */
@@ -261,11 +266,11 @@ export function useProposalReview(
     },
     onSuccess: (result) => {
       pushToast({
-        title: result.kind === "secret" ? "Secret approved" : "Binding approved",
+        title: result.kind === "secret" ? t("runtimeModules.extra88") : t("runtimeModules.extra89"),
         body:
           result.kind === "secret"
-            ? (result.proposedName ?? "Secret created")
-            : `${result.target?.name ?? "Agent"} · ${bindingEnvKey(result) || "binding"}`,
+            ? (result.proposedName ?? t("runtimeModules.extra90"))
+            : `${result.target?.name ?? t("runtimeModules.agent")} · ${bindingEnvKey(result) || "binding"}`,
         tone: "success",
       });
       setApproveDraft(null);
@@ -280,7 +285,7 @@ export function useProposalReview(
       secretsApi.rejectProposal(companyId!, proposal.id, { reason: reason.trim() }),
     onSuccess: (result) => {
       pushToast({
-        title: "Proposal rejected",
+        title: t("runtimeModules.extra91"),
         body: result.kind === "secret" ? (result.proposedName ?? undefined) : undefined,
         tone: "info",
       });
@@ -381,6 +386,7 @@ function ApproveDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  useTranslation();
   const isSecret = draft?.proposal.kind === "secret";
   const previewName = draft
     ? draft.folder.trim()
@@ -397,19 +403,19 @@ function ApproveDialog({
           <>
             <DialogHeader>
               <DialogTitle>
-                {isSecret ? "Approve & create secret" : "Approve binding"}
+                {isSecret ? t("runtimeModules.extra92") : t("runtimeModules.extra93")}
               </DialogTitle>
               <DialogDescription>
                 {isSecret
-                  ? "The value is created as the proposing agent recorded it. Re-folder or rename it before it lands."
-                  : "Grant the target agent access to this secret. This runs with your permissions."}
+                  ? t("runtimeModules.extra94")
+                  : t("runtimeModules.extra95")}
               </DialogDescription>
             </DialogHeader>
 
             {/* Provenance recap — keeps the social-engineering surface visible. */}
             <div className="space-y-1.5 rounded-md border border-border bg-muted/30 p-2.5 text-xs">
               <div className="flex items-center gap-1.5 text-muted-foreground">
-                <span>Proposed by</span>
+                <span>{t("runtimeModules.extra96")}</span>
                 <AgentRefChip agent={draft.proposal.proposedBy} className="font-medium text-foreground" />
               </div>
               <ProposalJustification justification={draft.proposal.justification} />
@@ -419,7 +425,7 @@ function ApproveDialog({
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
-                    <Label htmlFor="approve-folder">Folder</Label>
+                    <Label htmlFor="approve-folder">{t("runtimeModules.extra97")}</Label>
                     <Input
                       id="approve-folder"
                       value={draft.folder}
@@ -429,7 +435,7 @@ function ApproveDialog({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="approve-name">Name</Label>
+                    <Label htmlFor="approve-name">{t("runtimeModules.extra99")}</Label>
                     <Input
                       id="approve-name"
                       value={draft.leaf}
@@ -441,28 +447,27 @@ function ApproveDialog({
                     />
                   </div>
                 </div>
-                <p className="text-(length:--text-micro) text-muted-foreground">
-                  Lands as{" "}
+                <p className="text-(length:--text-micro) text-muted-foreground">{t("runtimeModules.extra101")}{" "}
                   {previewName ? (
                     <SecretPathName name={previewName} className="font-mono" />
                   ) : (
-                    <span className="italic">enter a name</span>
+                    <span className="italic">{t("runtimeModules.extra102")}</span>
                   )}
                 </p>
 
                 <div className="space-y-1">
-                  <Label htmlFor="approve-description">Description</Label>
+                  <Label htmlFor="approve-description">{t("runtimeModules.extra103")}</Label>
                   <Input
                     id="approve-description"
                     value={draft.description}
                     onChange={(event) => onChange({ ...draft, description: event.target.value })}
-                    placeholder="Optional"
+                    placeholder={t("runtimeModules.extra104")}
                   />
                 </div>
 
                 {localConfigs.length > 0 ? (
                   <div className="space-y-1">
-                    <Label htmlFor="approve-provider-config">Provider vault</Label>
+                    <Label htmlFor="approve-provider-config">{t("runtimeModules.extra105")}</Label>
                     <select
                       id="approve-provider-config"
                       value={draft.providerConfigId}
@@ -471,7 +476,7 @@ function ApproveDialog({
                       }
                       className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                     >
-                      <option value="">Deployment default</option>
+                      <option value="">{t("runtimeModules.extra106")}</option>
                       {localConfigs.map((config) => (
                         <option key={config.id} value={config.id}>
                           {config.displayName}
@@ -499,17 +504,15 @@ function ApproveDialog({
             ) : null}
 
             <DialogFooter>
-              <Button variant="ghost" onClick={onCancel} disabled={pending}>
-                Cancel
-              </Button>
+              <Button variant="ghost" onClick={onCancel} disabled={pending}>{t("runtimeModules.extra107")}</Button>
               <Button onClick={onConfirm} disabled={pending || !canConfirm}>
                 {pending
-                  ? "Approving…"
+                  ? t("runtimeModules.approving")
                   : isSecret
-                    ? "Approve & create"
+                    ? t("runtimeModules.extra108")
                     : draft.cascade
-                      ? "Approve secret & bind"
-                      : "Approve binding"}
+                      ? t("runtimeModules.extra109")
+                      : t("runtimeModules.extra110")}
               </Button>
             </DialogFooter>
           </>
@@ -526,6 +529,7 @@ function BindingApproveBody({
   draft: ApproveDraft;
   onChange: (next: ApproveDraft) => void;
 }) {
+  useTranslation();
   const { proposal } = draft;
   const secret = bindingSecretLabel(proposal);
   const envKey = bindingEnvKey(proposal);
@@ -533,7 +537,7 @@ function BindingApproveBody({
     <div className="space-y-3 text-sm">
       <div className="space-y-2 rounded-md border border-border p-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-muted-foreground">Target agent</span>
+          <span className="text-xs text-muted-foreground">{t("runtimeModules.extra111")}</span>
           {proposal.target ? (
             <AgentRefChip agent={proposal.target} className="text-sm font-medium" />
           ) : (
@@ -541,14 +545,14 @@ function BindingApproveBody({
           )}
         </div>
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-muted-foreground">Delivered as</span>
+          <span className="text-xs text-muted-foreground">{t("runtimeModules.extra113")}</span>
           <span className="flex items-center gap-1.5">
             <DeliveryBadge configPath={proposal.configPath} />
             <code className="font-mono text-xs">{envKey || proposal.configPath}</code>
           </span>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-muted-foreground">Secret</span>
+          <span className="text-xs text-muted-foreground">{t("runtimeModules.extra114")}</span>
           <span className="flex items-center gap-1.5">
             <KeyRound className="size-3.5 text-muted-foreground" />
             <span className="font-medium">{secret.name}</span>
@@ -564,13 +568,10 @@ function BindingApproveBody({
             checked={draft.cascade}
             onCheckedChange={(checked) => onChange({ ...draft, cascade: checked === true })}
             className="mt-0.5"
-            aria-label="Also approve the proposed secret"
+            aria-label={t("runtimeModules.extra115")}
           />
-          <span className="text-foreground/90">
-            Also approve the proposed secret{" "}
-            <span className="font-medium">{secret.name}</span> and create it in the same step. The
-            binding can’t land without it.
-          </span>
+          <span className="text-foreground/90">{t("runtimeModules.extra116")}{" "}
+            <span className="font-medium">{secret.name}</span>{t("runtimeModules.extra117")}</span>
         </label>
       ) : null}
     </div>
@@ -598,6 +599,7 @@ function RejectDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  useTranslation();
   const canConfirm = reason.trim().length > 0;
   return (
     <Dialog open={Boolean(proposal)} onOpenChange={(open) => !open && onCancel()}>
@@ -605,22 +607,19 @@ function RejectDialog({
         {proposal ? (
           <>
             <DialogHeader>
-              <DialogTitle>Reject proposal</DialogTitle>
-              <DialogDescription>
-                The reason is sent back to{" "}
-                <AgentRefChip agent={proposal.proposedBy} className="text-foreground" />. Dependent
-                bindings are rejected too.
-              </DialogDescription>
+              <DialogTitle>{t("runtimeModules.extra118")}</DialogTitle>
+              <DialogDescription>{t("runtimeModules.extra119")}{" "}
+                <AgentRefChip agent={proposal.proposedBy} className="text-foreground" />{t("runtimeModules.extra120")}</DialogDescription>
             </DialogHeader>
             <div className="space-y-1">
-              <Label htmlFor="reject-reason">Reason</Label>
+              <Label htmlFor="reject-reason">{t("runtimeModules.extra121")}</Label>
               <Textarea
                 id="reject-reason"
                 value={reason}
                 onChange={(event) => onReasonChange(event.target.value)}
                 rows={3}
                 autoFocus
-                placeholder="Why is this being rejected?"
+                placeholder={t("runtimeModules.extra122")}
               />
             </div>
             {error ? (
@@ -629,11 +628,9 @@ function RejectDialog({
               </p>
             ) : null}
             <DialogFooter>
-              <Button variant="ghost" onClick={onCancel} disabled={pending}>
-                Cancel
-              </Button>
+              <Button variant="ghost" onClick={onCancel} disabled={pending}>{t("runtimeModules.extra123")}</Button>
               <Button variant="destructive" onClick={onConfirm} disabled={pending || !canConfirm}>
-                {pending ? "Rejecting…" : "Reject"}
+                {pending ? t("runtimeModules.rejecting") : t("runtimeModules.reject")}
               </Button>
             </DialogFooter>
           </>
@@ -660,6 +657,7 @@ export function ProposalActions({
   disabled?: boolean;
   size?: "sm" | "xs";
 }) {
+  useTranslation();
   const blocked = !proposal.viewerCanApprove;
   const heightClass = size === "xs" ? "h-7 px-2 text-xs" : "";
   const approveButton = (
@@ -668,9 +666,7 @@ export function ProposalActions({
       className={heightClass}
       disabled={disabled || blocked}
       onClick={() => onApprove(proposal)}
-    >
-      Approve
-    </Button>
+    >{t("runtimeModules.extra124")}</Button>
   );
   return (
     <div className="flex items-center gap-1.5">
@@ -681,7 +677,7 @@ export function ProposalActions({
               <span tabIndex={0}>{approveButton}</span>
             </TooltipTrigger>
             <TooltipContent className="max-w-72">
-              {proposal.approveBlockReason ?? "You don’t have permission to approve this."}
+              {proposal.approveBlockReason ?? t("runtimeModules.extra125")}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -694,9 +690,7 @@ export function ProposalActions({
         className={heightClass}
         disabled={disabled}
         onClick={() => onReject(proposal)}
-      >
-        Reject
-      </Button>
+      >{t("runtimeModules.extra126")}</Button>
     </div>
   );
 }

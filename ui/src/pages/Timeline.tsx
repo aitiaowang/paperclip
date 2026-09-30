@@ -1,3 +1,4 @@
+import { getLocale, t, useTranslation } from "@/i18n";
 /**
  * Work Timeline page (PAP-12424 / Phase C of PAP-12405).
  *
@@ -80,11 +81,11 @@ export async function loadTimelineWindow(
 
     if (!page.pagination.hasMore) break;
     const nextOffset = page.pagination.offset + page.pagination.limit;
-    if (nextOffset <= offset) throw new Error("Timeline pagination did not advance");
+    if (nextOffset <= offset) throw new Error(t("auditModules.timelinePaginationDidNotAdvance"));
     offset = nextOffset;
   }
 
-  if (!firstPage) throw new Error("Timeline response was empty");
+  if (!firstPage) throw new Error(t("auditModules.timelineResponseWasEmpty"));
   return {
     actors: Array.from(actors.values()),
     spans: Array.from(spans.values()),
@@ -130,17 +131,17 @@ function rangeWindow(range: DateRangeState): Pick<WorkTimelineParams, "from" | "
 }
 
 function rangeError(range: DateRangeState): string | null {
-  if (!range.fromDate || !range.toDate) return "Choose a start and end date.";
-  if (!rangeWindow(range)) return "Start date must be before end date.";
+  if (!range.fromDate || !range.toDate) return t("auditModules.chooseAStartAndEndDate");
+  if (!rangeWindow(range)) return t("auditModules.startDateMustBeBeforeEndDate");
   return null;
 }
 
 function formatInteger(value: number): string {
-  return new Intl.NumberFormat("en-US").format(value);
+  return new Intl.NumberFormat(getLocale()).format(value);
 }
 
 function formatCompactInteger(value: number): string {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(getLocale(), {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(value);
@@ -245,27 +246,20 @@ function Segmented<T extends string>({
 
 /** Encoding key for the "Signal" timeline: colour = how each run started. */
 function TimelineLegend() {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-3.5 py-2 text-xs text-muted-foreground">
       <span className="flex items-center gap-1.5">
-        <span className="h-2.5 w-4 rounded-sm" style={{ backgroundColor: TIMELINE_COLORS.delegated }} />
-        Delegated
-      </span>
+        <span className="h-2.5 w-4 rounded-sm" style={{ backgroundColor: TIMELINE_COLORS.delegated }} />{t("auditModules.delegated")}</span>
       <span className="flex items-center gap-1.5">
-        <span className="h-2.5 w-4 rounded-sm" style={{ backgroundColor: TIMELINE_COLORS.automation }} />
-        Automation
-      </span>
+        <span className="h-2.5 w-4 rounded-sm" style={{ backgroundColor: TIMELINE_COLORS.automation }} />{t("auditModules.automation")}</span>
       <span className="flex items-center gap-1.5">
         <span
           className="h-2.5 w-4 rounded-sm border border-dashed bg-transparent"
           style={{ borderColor: TIMELINE_COLORS.cancelled }}
-        />
-        Cancelled
-      </span>
+        />{t("auditModules.cancelled")}</span>
       <span className="flex items-center gap-1.5">
-        <span className="h-3.5 w-0.5" style={{ backgroundColor: TIMELINE_COLORS.now }} />
-        Now
-      </span>
+        <span className="h-3.5 w-0.5" style={{ backgroundColor: TIMELINE_COLORS.now }} />{t("auditModules.now")}</span>
     </div>
   );
 }
@@ -275,13 +269,14 @@ function TimelineSummaryStats({
 }: {
   summary: ReturnType<typeof timelineSummary>;
 }) {
+  const { t } = useTranslation();
   const stats: { label: string; value: string; icon: LucideIcon }[] = [
-    { label: "Runs", value: formatInteger(summary.runs), icon: GanttChartSquare },
-    { label: "Agents", value: formatInteger(summary.agents), icon: Bot },
-    { label: "Run time", value: formatDuration(0, summary.activeMs), icon: Clock3 },
+    { label: t("auditModules.runs"), value: formatInteger(summary.runs), icon: GanttChartSquare },
+    { label: t("auditModules.agents"), value: formatInteger(summary.agents), icon: Bot },
+    { label: t("auditModules.runTime"), value: formatDuration(0, summary.activeMs), icon: Clock3 },
     {
-      label: "Tokens used",
-      value: summary.totalTokens > 0 ? formatCompactInteger(summary.totalTokens) : "Not tracked",
+      label: t("auditModules.tokensUsed"),
+      value: summary.totalTokens > 0 ? formatCompactInteger(summary.totalTokens) : t("auditModules.notTracked"),
       icon: Coins,
     },
   ];
@@ -305,6 +300,7 @@ function TimelineSummaryStats({
 }
 
 export function Timeline({ embedded = false }: { embedded?: boolean } = {}) {
+  const { t } = useTranslation();
   const { selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
   const location = useLocation();
@@ -322,9 +318,9 @@ export function Timeline({ embedded = false }: { embedded?: boolean } = {}) {
 
   useEffect(() => {
     if (!embedded) {
-      setBreadcrumbs([{ label: scopedProjectId ? "Project Timeline" : "Timeline" }]);
+      setBreadcrumbs([{ label: scopedProjectId ? t("auditModules.projectTimeline") : t("auditModules.timeline") }]);
     }
-  }, [embedded, scopedProjectId, setBreadcrumbs]);
+  }, [embedded, scopedProjectId, setBreadcrumbs, t]);
 
   const dateRangeError = rangeError(dateRange);
   const params: WorkTimelineParams | null = useMemo(() => {
@@ -362,7 +358,7 @@ export function Timeline({ embedded = false }: { embedded?: boolean } = {}) {
     return (
       <>
         {!embedded && <RequestCollapsedSidebar />}
-        <EmptyState icon={GanttChartSquare} message="Select an organization to view its work timeline." />
+        <EmptyState icon={GanttChartSquare} message={t("auditModules.selectAnOrganizationToViewItsWorkTimeline")} />
       </>
     );
   }
@@ -371,7 +367,7 @@ export function Timeline({ embedded = false }: { embedded?: boolean } = {}) {
     <div className="flex items-center gap-2">
       <GanttChartSquare className="h-6 w-6 text-muted-foreground" />
       <h1 className="text-3xl font-semibold tracking-tight">
-        {scopedProjectId ? "Project Timeline" : "Work Timeline"}
+        {scopedProjectId ? t("auditModules.projectTimeline") : t("auditModules.workTimeline")}
       </h1>
     </div>
   );
@@ -396,9 +392,7 @@ export function Timeline({ embedded = false }: { embedded?: boolean } = {}) {
   const summary = data ? timelineSummary(data, visibleWindow ?? dataWindow(data)) : null;
 
   const rangeControls = (
-    <label className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">
-      Range
-      <Segmented
+    <label className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">{t("auditModules.range")}<Segmented
         value={rangePreset}
         onChange={(preset) => {
           if (preset === "custom") return;
@@ -406,9 +400,9 @@ export function Timeline({ embedded = false }: { embedded?: boolean } = {}) {
           setDateRange(presetRange(preset));
         }}
         options={[
-          { value: "today", label: "Today" },
-          { value: "7d", label: "7 days" },
-          { value: "30d", label: "30 days" },
+          { value: "today", label: t("auditModules.today") },
+          { value: "7d", label: t("auditModules.7Days") },
+          { value: "30d", label: t("auditModules.30Days") },
         ]}
       />
       <Input
@@ -419,9 +413,9 @@ export function Timeline({ embedded = false }: { embedded?: boolean } = {}) {
           setDateRange((prev) => ({ ...prev, fromDate: event.target.value }));
         }}
         className="h-8 w-(--sz-150px) text-xs"
-        aria-label="Timeline start date"
+        aria-label={t("auditModules.timelineStartDate")}
       />
-      <span>to</span>
+      <span>{t("auditModules.to2")}</span>
       <Input
         type="date"
         value={dateRange.toDate}
@@ -430,7 +424,7 @@ export function Timeline({ embedded = false }: { embedded?: boolean } = {}) {
           setDateRange((prev) => ({ ...prev, toDate: event.target.value }));
         }}
         className="h-8 w-(--sz-150px) text-xs"
-        aria-label="Timeline end date"
+        aria-label={t("auditModules.timelineEndDate")}
       />
     </label>
   );
@@ -438,14 +432,14 @@ export function Timeline({ embedded = false }: { embedded?: boolean } = {}) {
   const toolbar = (
     <div className="flex flex-wrap items-start gap-3">
       {summary && <TimelineSummaryStats summary={summary} />}
-      <div className="ml-auto flex items-center gap-1 pt-3" aria-label="Timeline zoom controls">
+      <div className="ml-auto flex items-center gap-1 pt-3" aria-label={t("auditModules.timelineZoomControls")}>
         <Button
           type="button"
           variant="outline"
           size="icon-xs"
           onClick={() => adjustZoom(0.8)}
-          aria-label="Zoom out"
-          title="Zoom out"
+          aria-label={t("auditModules.zoomOut")}
+          title={t("auditModules.zoomOut")}
         >
           <Minus className="h-3 w-3" />
         </Button>
@@ -454,8 +448,8 @@ export function Timeline({ embedded = false }: { embedded?: boolean } = {}) {
           variant="outline"
           size="icon-xs"
           onClick={() => adjustZoom(1.25)}
-          aria-label="Zoom in"
-          title="Zoom in"
+          aria-label={t("auditModules.zoomIn")}
+          title={t("auditModules.zoomIn")}
         >
           <Plus className="h-3 w-3" />
         </Button>
@@ -464,8 +458,8 @@ export function Timeline({ embedded = false }: { embedded?: boolean } = {}) {
           variant="outline"
           size="icon-xs"
           onClick={resetZoom}
-          aria-label="Reset zoom"
-          title="Reset zoom"
+          aria-label={t("auditModules.resetZoom")}
+          title={t("auditModules.resetZoom")}
         >
           <RotateCcw className="h-3 w-3" />
         </Button>
@@ -496,7 +490,7 @@ export function Timeline({ embedded = false }: { embedded?: boolean } = {}) {
       {error && (
         <EmptyState
           icon={GanttChartSquare}
-          message="Couldn't load the timeline. The aggregation endpoint may be unavailable."
+          message={t("auditModules.couldntLoadTheTimelineTheAggregationEndpointMayBe")}
         />
       )}
 
@@ -505,7 +499,7 @@ export function Timeline({ embedded = false }: { embedded?: boolean } = {}) {
           <div className="space-y-3">
             <EmptyState
               icon={GanttChartSquare}
-              message={scopedProjectId ? "No project activity in this window." : "No activity in this window."}
+              message={scopedProjectId ? t("auditModules.noProjectActivityInThisWindow") : t("auditModules.noActivityInThisWindow")}
             />
             <div className="flex flex-wrap items-center justify-end gap-3">
               {rangeControls}
@@ -529,9 +523,9 @@ export function Timeline({ embedded = false }: { embedded?: boolean } = {}) {
             </Card>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-muted-foreground">
-                {data.spans.length} run{data.spans.length === 1 ? "" : "s"} ·{" "}
-                {new Date(data.window.from).toLocaleString()} to {new Date(data.window.to).toLocaleString()}
-                {data.window.capped ? " · window capped" : ""}
+                {t("auditModules.runCount", { count: data.spans.length })} ·{" "}
+                {new Date(data.window.from).toLocaleString(getLocale())}{" "}{t("auditModules.to2")}{" "}{new Date(data.window.to).toLocaleString(getLocale())}
+                {data.window.capped ? t("auditModules.windowCapped") : ""}
               </p>
               {rangeControls}
             </div>

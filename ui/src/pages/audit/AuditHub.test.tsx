@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { i18n } from "@/i18n";
+
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -77,6 +79,7 @@ describe("AuditHub", () => {
   let root: ReturnType<typeof createRoot>;
 
   beforeEach(() => {
+  void i18n.changeLanguage("en");
     currentSearch = "";
     container = document.createElement("div");
     document.body.appendChild(container);

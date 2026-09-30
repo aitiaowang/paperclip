@@ -1,5 +1,7 @@
 // @vitest-environment node
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { i18n } from "../i18n";
+beforeEach(() => { void i18n.changeLanguage("en"); });
 import {
   buildPermissionsForTrustPreset,
   clearSingleLowTrustBoundaryTarget,

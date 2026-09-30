@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { i18n } from "@/i18n";
+
 import { flushSync } from "react-dom";
 import { useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
@@ -89,6 +91,7 @@ describe("AuditFeed", () => {
   let root: ReturnType<typeof createRoot>;
 
   beforeEach(() => {
+  void i18n.changeLanguage("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     listAgentActionsMock.mockResolvedValue({ items: [record()], nextCursor: null, accessTier: "full" });

@@ -1,10 +1,23 @@
 // @vitest-environment node
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, afterEach, describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ResponsibleUserDenialNotice } from "./ResponsibleUserDenialNotice";
+import { i18n } from "../i18n";
+
+afterEach(() => { void i18n.changeLanguage("en"); });
+beforeEach(() => { void i18n.changeLanguage("en"); });
 
 describe("ResponsibleUserDenialNotice", () => {
+  it("translates denial guidance while preserving code, tone, and user names", async () => {
+    await i18n.changeLanguage("zh-CN");
+    const html = renderToStaticMarkup(<ResponsibleUserDenialNotice code="RESPONSIBLE_USER_UNAVAILABLE" userName="Ada" />);
+    expect(html).toContain("责任用户不可用");
+    expect(html).toContain("Ada");
+    expect(html).toContain("重新指定责任用户");
+    expect(html).toContain('data-denial-code="RESPONSIBLE_USER_UNAVAILABLE"');
+    expect(html).toContain('data-denial-tone="unavailable"');
+  });
   it("renders unauthorized copy that names the responsible user", () => {
     const html = renderToStaticMarkup(
       <ResponsibleUserDenialNotice

@@ -1,3 +1,4 @@
+import { getLocale, t, useTranslation } from "@/i18n";
 import { agentAvatarUrl } from "@/lib/agent-avatar-url";
 import { resolveAgentAppearance } from "@paperclipai/shared";
 /**
@@ -121,16 +122,16 @@ interface DragSelectionState {
 function fmtClock(ms: number): string {
   const d = new Date(ms);
   const hasMinutes = d.getMinutes() !== 0;
-  return d.toLocaleTimeString("en-US", {
+  return d.toLocaleTimeString(getLocale(), {
     hour: "numeric",
     minute: hasMinutes ? "2-digit" : undefined,
-    hour12: true,
+    hour12: getLocale() === "en",
   });
 }
 
 function fmtTick(ms: number, stepMs: number): string {
   const d = new Date(ms);
-  const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const date = d.toLocaleDateString(getLocale(), { month: "short", day: "numeric" });
   if (stepMs >= 24 * 60 * 60 * 1000) {
     return date;
   }
@@ -141,23 +142,23 @@ export function formatVisibleDurationMinutes(minutes: number): string {
   const rounded = Math.max(1, Math.round(minutes));
   if (rounded >= 7 * 24 * 60 && rounded % (7 * 24 * 60) === 0) {
     const weeks = rounded / (7 * 24 * 60);
-    return `${weeks} week${weeks === 1 ? "" : "s"} visible`;
+    return t("auditModules.visibleWeeks", { count: weeks });
   }
   if (rounded >= 24 * 60 && rounded % (24 * 60) === 0) {
     const days = rounded / (24 * 60);
-    return `${days} day${days === 1 ? "" : "s"} visible`;
+    return t("auditModules.visibleDays", { count: days });
   }
   if (rounded >= 24 * 60) {
     const days = Math.floor(rounded / (24 * 60));
     const hours = Math.round((rounded % (24 * 60)) / 60);
-    return `${days}d${hours > 0 ? ` ${hours}h` : ""} visible`;
+    return t("auditModules.visibleDaysHours", { days, hours: hours > 0 ? t("auditModules.shortHours", { count: hours }) : "" });
   }
   if (rounded >= 60 && rounded % 60 === 0) {
     const hours = rounded / 60;
-    return `${hours} hour${hours === 1 ? "" : "s"} visible`;
+    return t("auditModules.visibleHours", { count: hours });
   }
-  if (rounded >= 60) return `${Math.floor(rounded / 60)}h ${rounded % 60}m visible`;
-  return `${rounded} minutes visible`;
+  if (rounded >= 60) return t("auditModules.visibleHoursMinutes", { hours: Math.floor(rounded / 60), minutes: rounded % 60 });
+  return t("auditModules.visibleMinutes", { count: rounded });
 }
 
 function truncate(text: string, n = 42): string {
@@ -258,6 +259,7 @@ export function WorkTimelineChart({
   onVisibleWindowChange,
   nowMs,
 }: WorkTimelineChartProps) {
+  const { t } = useTranslation();
   const location = useLocation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const initialWindowKeyRef = useRef<string | null>(null);
@@ -364,7 +366,7 @@ export function WorkTimelineChart({
     const effectiveViewportW = viewportW || DEFAULT_VIEWPORT_W;
     const minutes = plotViewportWidth(effectiveViewportW) / layout.pxPerMinute;
     onVisibleRangeLabelChange(formatVisibleDurationMinutes(minutes));
-  }, [layout.pxPerMinute, onVisibleRangeLabelChange, viewportW]);
+  }, [layout.pxPerMinute, onVisibleRangeLabelChange, viewportW, t]);
 
   useEffect(() => {
     if (!onVisibleWindowChange || viewportW <= 0) return;
@@ -444,8 +446,8 @@ export function WorkTimelineChart({
     const related = layout.connectors.filter((c) => c.sourceRunId === bar.span.runId || c.targetRunId === bar.span.runId);
     if (related.length === 0) return null;
     return related.some((c) => c.dashed)
-      ? "dashed handoff: retry or changes requested"
-      : "solid handoff: delegation or assignment";
+      ? "auditModules.dashedHandoff"
+      : "auditModules.solidHandoff";
   };
 
   const showTooltip = (evt: React.MouseEvent, bar: PositionedBar) => {
@@ -779,10 +781,11 @@ function TimeAxisOverlay({
 }
 
 function Tooltip({ tooltip, now }: { tooltip: TooltipState; now: number }) {
+  const { t } = useTranslation();
   const { bar } = tooltip;
   const startMs = new Date(bar.span.start).getTime();
   const endMs = bar.span.end ? new Date(bar.span.end).getTime() : now;
-  const title = bar.span.issueTitle ?? bar.span.issueIdentifier ?? "run";
+  const title = bar.span.issueTitle ?? bar.span.issueIdentifier ?? t("auditModules.run");
   const left = Math.min(tooltip.x + 14, (typeof window !== "undefined" ? window.innerWidth : 1200) - 300);
   return (
     <div
@@ -792,17 +795,17 @@ function Tooltip({ tooltip, now }: { tooltip: TooltipState; now: number }) {
     >
       <div className="text-(length:--text-compact) font-medium text-foreground">{truncate(title)}</div>
       <div className="mt-0.5 text-muted-foreground">
-        {fmtClock(startMs)}–{bar.span.end ? fmtClock(endMs) : "now"} · {formatDuration(startMs, endMs)} ·{" "}
-        <span className="font-medium text-foreground">{bar.span.status}</span>
+        {fmtClock(startMs)}–{bar.span.end ? fmtClock(endMs) : t("auditModules.now")} · {formatDuration(startMs, endMs)} ·{" "}
+        <span className="font-medium text-foreground">{t(`statusUi.generic.${bar.span.status}`, { defaultValue: bar.span.status })}</span>
       </div>
       {bar.kickoff && (
         <div className="text-muted-foreground">
-          kicked off by: {(bar.kickoff as WorkTimelineActor).name}
-          {bar.span.retryOfRunId ? " · retry" : ""}
+          {t("auditModules.kickedOffBy", { name: (bar.kickoff as WorkTimelineActor).name })}
+          {bar.span.retryOfRunId ? t("auditModules.retrySuffix") : ""}
         </div>
       )}
       {tooltip.connectorHint && (
-        <div className="text-muted-foreground">{tooltip.connectorHint}</div>
+        <div className="text-muted-foreground">{t(tooltip.connectorHint)}</div>
       )}
     </div>
   );
@@ -946,7 +949,7 @@ function MiniMap({
           height={H - 2}
           width={handleW}
           testId="timeline-minimap-left-handle"
-          label="Drag left edge to resize visible range"
+          label={t("auditModules.dragLeftRange")}
           onMouseDown={(e) => startRangeDrag("left", e)}
         />
         <MiniMapHandle
@@ -955,7 +958,7 @@ function MiniMap({
           height={H - 2}
           width={handleW}
           testId="timeline-minimap-right-handle"
-          label="Drag right edge to resize visible range"
+          label={t("auditModules.dragRightRange")}
           onMouseDown={(e) => startRangeDrag("right", e)}
         />
       </svg>

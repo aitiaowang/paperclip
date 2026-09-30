@@ -54,3 +54,6 @@ describe("consumerTypeLabel", () => {
     expect(consumerTypeLabel("project")).toBe("Project");
   });
 });
+import { beforeEach as beforeEachLocale } from "vitest";
+import { changeLocale } from "@/i18n";
+beforeEachLocale(() => changeLocale("en"));

@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { i18n } from "@/i18n";
+
 import type { ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
@@ -92,6 +94,7 @@ describe("AuditRuns", () => {
   let root: ReturnType<typeof createRoot>;
 
   beforeEach(() => {
+  void i18n.changeLanguage("en");
     currentSearch = "";
     container = document.createElement("div");
     document.body.appendChild(container);

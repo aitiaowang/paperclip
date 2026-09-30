@@ -1,3 +1,4 @@
+import { t, useTranslation } from "@/i18n";
 import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
@@ -87,6 +88,7 @@ export function EnvironmentVariableRow({
   focusRequest,
   onFocusConsumed,
 }: EnvironmentVariableRowProps) {
+  useTranslation();
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const valueInputRef = useRef<HTMLInputElement | null>(null);
   const valueCellRef = useRef<HTMLDivElement | null>(null);
@@ -172,7 +174,7 @@ export function EnvironmentVariableRow({
       version: "latest",
       textValue: "",
     });
-    onToast(`Secret ${created.name} created`);
+    onToast(t("runtimeModules.secretCreated", { name: created.name }));
     setSecretPopover(null);
   }
 
@@ -184,10 +186,10 @@ export function EnvironmentVariableRow({
 
   const sourceLabel =
     row.source === "text"
-      ? "Text value"
+      ? t("runtimeModules.dep22")
       : row.source === "secret"
-        ? "Organization secret reference"
-        : "User secret reference";
+        ? t("runtimeModules.dep23")
+        : t("runtimeModules.dep24");
   const nameErrorId = `${row.id}-name-error`;
   const healthId = `${row.id}-health`;
   const isDirty = dirtyFields.name || dirtyFields.value;
@@ -214,11 +216,11 @@ export function EnvironmentVariableRow({
             showNameIssue && nameIssue?.level === "error" && "border-destructive focus-visible:ring-destructive/40",
             showNameIssue && nameIssue?.level === "warn" && "border-amber-500 focus-visible:ring-amber-500/40",
           )}
-          placeholder="KEY"
+          placeholder={t("runtimeModules.dep25")}
           value={row.name}
           spellCheck={false}
           disabled={disabled}
-          aria-label="Variable name"
+          aria-label={t("runtimeModules.dep26")}
           aria-invalid={showNameIssue && nameIssue?.level === "error" ? true : undefined}
           aria-describedby={showNameIssue && nameIssue ? nameErrorId : undefined}
           onChange={(event) => onPatch({ name: event.target.value })}
@@ -262,7 +264,7 @@ export function EnvironmentVariableRow({
                     <DropdownMenuTrigger asChild disabled={disabled}>
                       <button
                         type="button"
-                        aria-label="Value source"
+                        aria-label={t("runtimeModules.dep27")}
                         className="flex shrink-0 items-center gap-0.5 border-r border-border px-2 text-muted-foreground hover:bg-accent/50 disabled:pointer-events-none"
                       >
                         {row.source === "text" ? (
@@ -280,18 +282,16 @@ export function EnvironmentVariableRow({
                 </Tooltip>
                 <DropdownMenuContent align="start" className="w-56">
                   <DropdownMenuItem className="flex-col items-start gap-0.5" onSelect={() => switchSource("text")}>
-                    <span className="text-sm">Text value</span>
-                    <span className="text-(length:--text-micro) text-muted-foreground">Store the value inline as plain text.</span>
+                    <span className="text-sm">{t("runtimeModules.dep28")}</span>
+                    <span className="text-(length:--text-micro) text-muted-foreground">{t("runtimeModules.dep29")}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex-col items-start gap-0.5" onSelect={() => switchSource("secret")}>
-                    <span className="text-sm">Organization secret</span>
-                    <span className="text-(length:--text-micro) text-muted-foreground">Resolve a stored organization secret at run start.</span>
+                    <span className="text-sm">{t("runtimeModules.dep30")}</span>
+                    <span className="text-(length:--text-micro) text-muted-foreground">{t("runtimeModules.dep31")}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex-col items-start gap-0.5" onSelect={() => switchSource("user_secret")}>
-                    <span className="text-sm">User secret</span>
-                    <span className="text-(length:--text-micro) text-muted-foreground">
-                      Resolve the responsible user&apos;s own value at run start.
-                    </span>
+                    <span className="text-sm">{t("runtimeModules.dep32")}</span>
+                    <span className="text-(length:--text-micro) text-muted-foreground">{t("runtimeModules.dep33")}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -301,12 +301,12 @@ export function EnvironmentVariableRow({
                   <input
                     ref={valueInputRef}
                     className={valueTextInputClass}
-                    placeholder="value"
+                    placeholder={t("runtimeModules.dep34")}
                     value={row.textValue}
                     type={sensitive ? "password" : "text"}
                     spellCheck={false}
                     disabled={disabled}
-                    aria-label="Variable value"
+                    aria-label={t("runtimeModules.dep35")}
                     onChange={(event) => onPatch({ textValue: event.target.value })}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && isLast) {
@@ -322,17 +322,17 @@ export function EnvironmentVariableRow({
                         onClick={openStoreAsSecret}
                         disabled={disabled}
                         className="flex items-center gap-1 px-2 text-(length:--text-micro) text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
-                        title="This value looks sensitive — store it as a secret"
+                        title={t("runtimeModules.dep36")}
                       >
                         <ShieldAlert className="size-3.5" />
-                        <span className="hidden @[30rem]/env:inline">Store as secret</span>
+                        <span className="hidden @[30rem]/env:inline">{t("runtimeModules.dep37")}</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => onPatch({ sensitiveDismissed: true })}
                         disabled={disabled}
-                        aria-label="Dismiss sensitive-value suggestion"
-                        title="Dismiss — keep this value as plain text"
+                        aria-label={t("runtimeModules.dep38")}
+                        title={t("runtimeModules.dep39")}
                         className="flex items-center px-1.5 text-amber-700/60 hover:bg-amber-500/10 hover:text-amber-700 dark:text-amber-400/60 dark:hover:text-amber-400"
                       >
                         <X className="size-3" />
@@ -367,7 +367,7 @@ export function EnvironmentVariableRow({
                             event.stopPropagation();
                             setVersionOpen((prev) => !prev);
                           }}
-                          aria-label="Version"
+                          aria-label={t("runtimeModules.dep40")}
                           className={cn(
                             "absolute right-8 top-1/2 z-10 -translate-y-1/2 rounded px-1.5 py-0.5 text-(length:--text-nano) font-medium",
                             versionPinned
@@ -378,7 +378,7 @@ export function EnvironmentVariableRow({
                           {versionTagLabel}
                         </button>
                       </PopoverAnchor>
-                      <PopoverContent align="end" className="w-44 p-1" role="radiogroup" aria-label="Secret version">
+                      <PopoverContent align="end" className="w-44 p-1" role="radiogroup" aria-label={t("runtimeModules.dep41")}>
                         <button
                           type="button"
                           role="radio"
@@ -391,8 +391,7 @@ export function EnvironmentVariableRow({
                             "flex w-full items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-accent",
                             row.version === "latest" && "font-medium",
                           )}
-                        >
-                          latest <span className="text-(length:--text-micro) text-muted-foreground">(recommended)</span>
+                        >{t("runtimeModules.dep42")}<span className="text-(length:--text-micro) text-muted-foreground">{t("runtimeModules.dep43")}</span>
                         </button>
                         {Array.from({ length: versions }, (_, idx) => versions - idx)
                           .filter((v) => v > 0)
@@ -422,7 +421,7 @@ export function EnvironmentVariableRow({
                 <div className="grid min-w-0 flex-1 grid-cols-(--gtc-13)">
                   {userSecretsEnabled ? (
                     <select
-                      aria-label="User secret"
+                      aria-label={t("runtimeModules.dep45")}
                       value={row.userSecretKey}
                       disabled={disabled}
                       onChange={(event) => {
@@ -435,9 +434,9 @@ export function EnvironmentVariableRow({
                       }}
                       className="min-w-0 bg-transparent px-2 py-1.5 text-sm font-mono outline-none disabled:pointer-events-none"
                     >
-                      <option value="">Select user secret...</option>
+                      <option value="">{t("runtimeModules.dep46")}</option>
                       {row.userSecretKey && !userSecretDefinitions?.some((definition) => definition.key === row.userSecretKey) ? (
-                        <option value={row.userSecretKey}>Unknown ({row.userSecretKey})</option>
+                        <option value={row.userSecretKey}>{t("runtimeModules.dep47")}{row.userSecretKey})</option>
                       ) : null}
                       {(userSecretDefinitions ?? []).map((definition) => (
                         <option key={definition.id} value={definition.key}>
@@ -449,23 +448,23 @@ export function EnvironmentVariableRow({
                   ) : (
                     <input
                       className={valueTextInputClass}
-                      placeholder="user-secret key"
+                      placeholder={t("runtimeModules.dep49")}
                       value={row.userSecretKey}
                       spellCheck={false}
                       disabled={disabled}
-                      aria-label="User secret key"
+                      aria-label={t("runtimeModules.dep50")}
                       onChange={(event) => onPatch({ userSecretKey: event.target.value })}
                     />
                   )}
                   <select
-                    aria-label="Requirement"
+                    aria-label={t("runtimeModules.dep51")}
                     value={row.required ? "required" : "optional"}
                     disabled={disabled}
                     onChange={(event) => onPatch({ required: event.target.value === "required" })}
                     className="border-l border-border bg-transparent px-2 py-1.5 text-xs font-medium text-muted-foreground outline-none disabled:pointer-events-none"
                   >
-                    <option value="required">Required</option>
-                    <option value="optional">Optional</option>
+                    <option value="required">{t("runtimeModules.dep52")}</option>
+                    <option value="optional">{t("runtimeModules.dep53")}</option>
                   </select>
                 </div>
               )}
@@ -532,8 +531,7 @@ export function EnvironmentVariableRow({
 
         {/* 5s undo after Secret→Text */}
         {undoPrev ? (
-          <p className="mt-0.5 inline-flex items-center gap-2 text-(length:--text-micro) text-muted-foreground">
-            Reverted to text —{" "}
+          <p className="mt-0.5 inline-flex items-center gap-2 text-(length:--text-micro) text-muted-foreground">{t("runtimeModules.dep54")}{" "}
             <button
               type="button"
               className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
@@ -541,9 +539,7 @@ export function EnvironmentVariableRow({
                 onPatch({ source: "secret", secretId: undoPrev.secretId, version: undoPrev.version, textValue: "" });
                 setUndoPrev(null);
               }}
-            >
-              Undo
-            </button>
+            >{t("runtimeModules.dep55")}</button>
           </p>
         ) : null}
       </div>
@@ -567,7 +563,7 @@ export function EnvironmentVariableRow({
             <DropdownMenuTrigger asChild disabled={disabled}>
               <button
                 type="button"
-                aria-label="More actions"
+                aria-label={t("runtimeModules.dep56")}
                 className="rounded p-1 text-muted-foreground opacity-100 hover:bg-accent hover:text-foreground @[40rem]/env:opacity-0 @[40rem]/env:group-hover/row:opacity-100 @[40rem]/env:group-focus-within/row:opacity-100"
               >
                 <MoreHorizontal className="size-4" />
@@ -585,9 +581,7 @@ export function EnvironmentVariableRow({
                   // closing race as the picker's + Create item (PAP-12476/12477).
                   window.setTimeout(openStoreAsSecret, 0);
                 }}
-              >
-                Store as secret…
-              </DropdownMenuItem>
+              >{t("runtimeModules.dep57")}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : null}
@@ -595,7 +589,7 @@ export function EnvironmentVariableRow({
           type="button"
           onClick={onRemove}
           disabled={disabled}
-          aria-label={`Remove ${row.name.trim() || "variable"}`}
+          aria-label={t("runtimeModules.removeVariable", { name: row.name.trim() || t("runtimeModules.variable") })}
           className="rounded p-1 text-muted-foreground opacity-100 hover:bg-destructive/10 hover:text-destructive @[40rem]/env:opacity-0 @[40rem]/env:group-hover/row:opacity-100 @[40rem]/env:group-focus-within/row:opacity-100"
         >
           <X className="size-4" />

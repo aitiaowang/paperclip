@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { i18n } from "@/i18n";
+
 import { flushSync } from "react-dom";
 import type { ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -19,6 +21,7 @@ let container: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
+  void i18n.changeLanguage("en");
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);

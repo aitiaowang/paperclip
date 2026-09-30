@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { i18n } from "../i18n";
 import {
   formatRecoveryAttemptLabel,
   formatRecoveryLineageSummary,
@@ -56,15 +57,32 @@ function recoveryLaneAction(overrides: Partial<RecoveryLineageInput> = {}): Reco
 // times from NOW; left on the wall clock, a "future" retry silently becomes a past one and the
 // suite would assert the opposite of what it claims.
 beforeEach(() => {
+  void i18n.changeLanguage("en");
   vi.useFakeTimers();
   vi.setSystemTime(NOW);
 });
 
 afterEach(() => {
+  void i18n.changeLanguage("en");
   vi.useRealTimers();
 });
 
 describe("readRecoveryRetryLineage", () => {
+  it("translates attempt and time displays without changing retry state", async () => {
+    const action = sourceLaneAction();
+    const lineage = readRecoveryRetryLineage(action)!;
+    expect(formatRecoveryRetryOffset(lineage)).toBe("in 3m");
+    await i18n.changeLanguage("zh-CN");
+    expect(formatRecoveryAttemptLabel(lineage)).toBe("第 2 次尝试，共 5 次");
+    expect(formatRecoveryRetryOffset(lineage)).toBe("3 分钟后");
+    expect(formatRecoveryLineageSummary(lineage)).toContain("下次尝试 3 分钟后");
+    expect(formatRecoveryRetryOffset({ ...lineage, nextRetryAt: at(-3 * 60_000) })).toBe("3 分钟前");
+    expect(formatRecoveryRetryOffset({ ...lineage, nextRetryAt: at(0) })).toBe("现在");
+    expect(formatRecoveryLineageSummary({ ...lineage, nextRetryAt: at(0) })).toContain("立即再次尝试");
+    expect(readRecoveryRetryLineage(action)).toEqual(lineage);
+    await i18n.changeLanguage("en");
+    expect(formatRecoveryLineageSummary(lineage)).toBe("Attempt 2 of 5 · next try in 3m");
+  });
   it("returns null when the action carries no bounded lineage", () => {
     expect(readRecoveryRetryLineage({ wakePolicy: null })).toBeNull();
     expect(readRecoveryRetryLineage({ wakePolicy: { type: "wake_owner" } })).toBeNull();

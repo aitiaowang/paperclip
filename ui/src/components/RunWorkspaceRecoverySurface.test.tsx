@@ -3,11 +3,13 @@
 import type { ComponentProps, ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { HeartbeatRun, Issue, IssueRecoveryAction } from "@paperclipai/shared";
 import { RunWorkspaceRecoverySurface } from "./RunWorkspaceRecoverySurface";
 import { ToastProvider } from "../context/ToastContext";
+import { i18n } from "@/i18n";
+beforeEach(() => { void i18n.changeLanguage("en"); });
 
 const navigateMock = vi.hoisted(() => vi.fn());
 const issueGetMock = vi.hoisted(() => vi.fn());

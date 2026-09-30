@@ -136,12 +136,12 @@ export function providerDisplayName(provider: string): string {
 
 export function billingTypeDisplayName(billingType: BillingType): string {
   const map: Record<BillingType, string> = {
-    metered_api: "Metered API",
-    subscription_included: "Subscription",
-    subscription_overage: "Subscription overage",
-    credits: "Credits",
-    fixed: "Fixed",
-    unknown: "Unknown",
+    metered_api: t("auditFinance.billingTypeDisplayName.MeteredAPI"),
+    subscription_included: t("auditFinance.billingTypeDisplayName.Subscription"),
+    subscription_overage: t("auditFinance.billingTypeDisplayName.Subscriptionoverage"),
+    credits: t("auditFinance.billingTypeDisplayName.Credits"),
+    fixed: t("auditFinance.billingTypeDisplayName.Fixed"),
+    unknown: t("auditFinance.billingTypeDisplayName.Unknown"),
   };
   return map[billingType];
 }
@@ -191,26 +191,26 @@ export function visibleRunCostUsd(
 
 export function financeEventKindDisplayName(eventKind: FinanceEventKind): string {
   const map: Record<FinanceEventKind, string> = {
-    inference_charge: "Inference charge",
-    platform_fee: "Platform fee",
-    credit_purchase: "Credit purchase",
-    credit_refund: "Credit refund",
-    credit_expiry: "Credit expiry",
-    byok_fee: "BYOK fee",
-    gateway_overhead: "Gateway overhead",
-    log_storage_charge: "Log storage",
-    logpush_charge: "Logpush",
-    provisioned_capacity_charge: "Provisioned capacity",
-    training_charge: "Training",
-    custom_model_import_charge: "Custom model import",
-    custom_model_storage_charge: "Custom model storage",
-    manual_adjustment: "Manual adjustment",
+    inference_charge: t("auditFinance.financeEventKindDisplayName.Inferencecharge"),
+    platform_fee: t("auditFinance.financeEventKindDisplayName.Platformfee"),
+    credit_purchase: t("auditFinance.financeEventKindDisplayName.Creditpurchase"),
+    credit_refund: t("auditFinance.financeEventKindDisplayName.Creditrefund"),
+    credit_expiry: t("auditFinance.financeEventKindDisplayName.Creditexpiry"),
+    byok_fee: t("auditFinance.financeEventKindDisplayName.BYOKfee"),
+    gateway_overhead: t("auditFinance.financeEventKindDisplayName.Gatewayoverhead"),
+    log_storage_charge: t("auditFinance.financeEventKindDisplayName.Logstorage"),
+    logpush_charge: t("auditFinance.financeEventKindDisplayName.Logpush"),
+    provisioned_capacity_charge: t("auditFinance.financeEventKindDisplayName.Provisionedcapacity"),
+    training_charge: t("auditFinance.financeEventKindDisplayName.Training"),
+    custom_model_import_charge: t("auditFinance.financeEventKindDisplayName.Custommodelimport"),
+    custom_model_storage_charge: t("auditFinance.financeEventKindDisplayName.Custommodelstorage"),
+    manual_adjustment: t("auditFinance.financeEventKindDisplayName.Manualadjustment"),
   };
   return map[eventKind];
 }
 
 export function financeDirectionDisplayName(direction: FinanceDirection): string {
-  return direction === "credit" ? "Credit" : "Debit";
+  return direction === "credit" ? t("auditFinance.financeDirectionDisplayName.Credit") : t("auditFinance.financeDirectionDisplayName.Debit");
 }
 
 /** Build an issue URL using the human-readable identifier when available. */

@@ -4,14 +4,15 @@ import {
   type ResponsibleUserDenialCode,
 } from "@paperclipai/shared";
 import { cn } from "../lib/utils";
+import { useTranslation } from "../i18n";
 
 /**
  * Renders actionable copy for a responsible-user ("on behalf of") authorization
  * denial. Distinct from a plain agent-lacks-permission failure: here the agent
  * may be allowed, but the human the run acts for is not (or is unavailable).
  *
- * Copy comes from the shared `describeResponsibleUserDenial` contract so every
- * surface stays consistent. Callers should only render this when the failure
+ * Tone comes from the shared `describeResponsibleUserDenial` contract; visible
+ * guidance uses the active UI locale. Callers should only render this when the failure
  * code is one of the responsible-user denial codes; other denials keep their
  * existing generic error copy.
  */
@@ -24,7 +25,9 @@ export function ResponsibleUserDenialNotice({
   userName?: string | null;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const copy = describeResponsibleUserDenial(code, { userName });
+  const who = userName?.trim() || t("trustUi.responsibleUser");
   const isUnavailable = copy.tone === "unavailable";
   const Icon = isUnavailable ? UserX : ShieldX;
 
@@ -49,9 +52,9 @@ export function ResponsibleUserDenialNotice({
       <div className="flex items-start gap-2">
         <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", iconTone)} aria-hidden="true" />
         <div className="min-w-0 space-y-1">
-          <p className="font-medium leading-5">{copy.title}</p>
-          <p className="leading-5">{copy.description}</p>
-          <p className={cn("text-xs leading-5", actionTone)}>{copy.recommendedAction}</p>
+          <p className="font-medium leading-5">{t(`trustUi.denial.${copy.tone}.title`)}</p>
+          <p className="leading-5">{t(`trustUi.denial.${copy.tone}.description`, { who })}</p>
+          <p className={cn("text-xs leading-5", actionTone)}>{t(`trustUi.denial.${copy.tone}.action`, { who })}</p>
         </div>
       </div>
     </div>

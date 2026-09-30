@@ -1,3 +1,6 @@
+import { beforeEach as beforeEachLocale } from "vitest";
+import { changeLocale } from "@/i18n";
+beforeEachLocale(() => changeLocale("en"));
 import { describe, expect, it } from "vitest";
 import type { Environment } from "@paperclipai/shared";
 import {

@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { i18n } from "@/i18n";
+
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -49,6 +51,7 @@ describe("Costs embedded Audit surfaces", () => {
   let root: ReturnType<typeof createRoot>;
 
   beforeEach(() => {
+  void i18n.changeLanguage("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     budgetOverviewMock.mockResolvedValue({

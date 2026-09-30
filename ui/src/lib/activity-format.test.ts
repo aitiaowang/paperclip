@@ -1,3 +1,6 @@
+import { i18n } from "@/i18n";
+import { beforeEach } from "vitest";
+beforeEach(() => { void i18n.changeLanguage("en"); });
 import type { Agent } from "@paperclipai/shared";
 import { describe, expect, it } from "vitest";
 import { formatActivityVerb, formatIssueActivityAction } from "./activity-format";

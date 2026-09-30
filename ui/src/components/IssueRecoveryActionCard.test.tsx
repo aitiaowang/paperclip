@@ -4,6 +4,8 @@ import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import type { AnchorHTMLAttributes, ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { i18n } from "@/i18n";
+beforeEach(() => { void i18n.changeLanguage("en"); });
 import type { Agent, IssueRecoveryAction } from "@paperclipai/shared";
 import { IssueRecoveryActionCard, deriveRecoveryCardState } from "./IssueRecoveryActionCard";
 
@@ -113,6 +115,19 @@ function buildAction(overrides: Partial<IssueRecoveryAction> = {}): IssueRecover
     ...overrides,
   };
 }
+
+it("updates recovery maps and memoized guidance on a mounted locale switch", () => {
+  const onResolve = vi.fn();
+  const node = render(<IssueRecoveryActionCard action={buildAction()} onResolve={onResolve} />);
+  expect(node.textContent).toContain("RECOVERY NEEDED");
+  act(() => { void i18n.changeLanguage("zh-CN"); });
+  expect(node.textContent).toContain("需要恢复");
+  expect(node.textContent).toContain("此任务的运行已结束");
+  expect(node.querySelector("[data-recovery-kind]")?.getAttribute("data-recovery-kind")).toBe("missing_disposition");
+  expect(onResolve).not.toHaveBeenCalled();
+  act(() => { void i18n.changeLanguage("en"); });
+  expect(node.textContent).toContain("RECOVERY NEEDED");
+});
 
 describe("deriveRecoveryCardState", () => {
   it("maps active missing_disposition to needed", () => {

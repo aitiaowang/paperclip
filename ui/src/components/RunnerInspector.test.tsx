@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RunnerInspector } from "./RunnerInspector";
+import { i18n } from "@/i18n";
 
 const accessMock = vi.hoisted(() => vi.fn());
 const eventsMock = vi.hoisted(() => vi.fn());
@@ -114,6 +115,7 @@ describe("RunnerInspector", () => {
   let root: Root;
 
   beforeEach(() => {
+    void i18n.changeLanguage("en");
     window.history.replaceState(null, "", "/");
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -131,6 +133,7 @@ describe("RunnerInspector", () => {
     container.remove();
     vi.restoreAllMocks();
     vi.clearAllMocks();
+    void i18n.changeLanguage("en");
   });
 
   it("keeps canonical inspection available when raw capture was disabled", async () => {
@@ -167,6 +170,14 @@ describe("RunnerInspector", () => {
     );
     flushSync(() => rerunButton?.click());
     expect(rerun).toHaveBeenCalledOnce();
+    flushSync(() => { void i18n.changeLanguage("zh-CN"); });
+    expect(container.textContent).toContain("运行检查器");
+    expect(container.textContent).toContain("概览");
+    expect(container.textContent).toContain("原始采集已关闭");
+    expect(container.textContent).not.toContain("Raw capture off");
+    expect(revealMock).not.toHaveBeenCalled();
+    flushSync(() => { void i18n.changeLanguage("en"); });
+    expect(container.textContent).toContain("Raw capture off");
   });
 
   it("shows redacted frames by default and warns before exact reveal", async () => {

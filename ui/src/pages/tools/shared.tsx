@@ -1,3 +1,4 @@
+import { t, useTranslation } from "@/i18n";
 import type { ReactNode } from "react";
 import type {
   ToolRiskLevel,
@@ -12,14 +13,15 @@ import { ApiError } from "@/api/client";
 
 /** Risk classification badge for a catalog tool. */
 export function RiskBadge({ risk }: { risk: ToolRiskLevel | null | undefined }) {
-  if (!risk) return <Badge variant="outline">unknown</Badge>;
+  useTranslation();
+  if (!risk) return <Badge variant="outline">{t("runtimeModules.dep88")}</Badge>;
   const variant =
     risk === "high" || risk === "critical"
       ? "destructive"
       : risk === "medium"
         ? "secondary"
         : "outline";
-  return <Badge variant={variant}>{risk}</Badge>;
+  return <Badge variant={variant}>{t(`runtimeModules.risk.${risk}`, { defaultValue: risk })}</Badge>;
 }
 
 /** Read/Write/Destructive capability chips. */
@@ -32,17 +34,19 @@ export function CapabilityBadges({
   isWrite?: boolean;
   isDestructive?: boolean;
 }) {
+  useTranslation();
   return (
     <span className="inline-flex flex-wrap gap-1">
-      {isReadOnly ? <Badge variant="outline">read-only</Badge> : null}
-      {isWrite ? <Badge variant="secondary">write</Badge> : null}
-      {isDestructive ? <Badge variant="destructive">destructive</Badge> : null}
+      {isReadOnly ? <Badge variant="outline">{t("runtimeModules.dep89")}</Badge> : null}
+      {isWrite ? <Badge variant="secondary">{t("runtimeModules.dep90")}</Badge> : null}
+      {isDestructive ? <Badge variant="destructive">{t("runtimeModules.dep91")}</Badge> : null}
     </span>
   );
 }
 
 /** Catalog quarantine marker — canonical status key. */
 export function QuarantineBadge() {
+  useTranslation();
   return <StatusBadge status="quarantined" />;
 }
 
@@ -75,6 +79,7 @@ export function HealthBadge({
   status: ToolConnectionHealthStatus | string | null | undefined;
   label?: string;
 }) {
+  useTranslation();
   const raw = (status ?? "unknown").toString();
   return <StatusBadge status={healthToStatusKey(raw)} label={label ?? raw} />;
 }
@@ -109,6 +114,7 @@ function decisionToStatusKey(decision: string): { key: string; label: string } {
 
 /** Policy/gateway decision badge — canonical status colors. */
 export function DecisionBadge({ decision }: { decision: ToolPolicyDecision | string | null | undefined }) {
+  useTranslation();
   if (!decision) return <Badge variant="outline">—</Badge>;
   const { key, label } = decisionToStatusKey(decision.toString());
   return <StatusBadge status={key} label={label} />;
@@ -116,7 +122,8 @@ export function DecisionBadge({ decision }: { decision: ToolPolicyDecision | str
 
 /** Compact relative time, falling back to absolute. */
 export function RelativeTime({ value }: { value: Date | string | null | undefined }) {
-  if (!value) return <span className="text-muted-foreground">never</span>;
+  useTranslation();
+  if (!value) return <span className="text-muted-foreground">{t("runtimeModules.dep93")}</span>;
   const date = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return <span className="text-muted-foreground">—</span>;
   const diffMs = Date.now() - date.getTime();
@@ -146,6 +153,7 @@ export function ToolsPageHeader({
   description?: ReactNode;
   actions?: ReactNode;
 }) {
+  useTranslation();
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="space-y-1">
@@ -157,7 +165,8 @@ export function ToolsPageHeader({
   );
 }
 
-export function LoadingState({ label = "Loading…" }: { label?: string }) {
+export function LoadingState({ label = t("runtimeModules.loading") }: { label?: string }) {
+  useTranslation();
   return (
     <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
       <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
@@ -168,20 +177,21 @@ export function LoadingState({ label = "Loading…" }: { label?: string }) {
 
 /** Actionable error surface — surfaces the server message and HTTP status. */
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  useTranslation();
   let message: string;
   if (error instanceof ApiError) {
     if (error.status === 403) {
-      message = "You do not have permission to view this. Tools & Access requires board/admin access.";
+      message = t("runtimeModules.dep95");
     } else if (error.status === 404 || /route not found/i.test(error.message)) {
       // Snapshot-skew window: the route exists in this build but not on the live server snapshot yet.
-      message = "Tools & Access isn't available on this server yet — try refreshing after the next deployment.";
+      message = t("runtimeModules.dep96");
     } else {
       message = error.message;
     }
   } else if (error instanceof Error) {
     message = error.message;
   } else {
-    message = "Something went wrong.";
+    message = t("runtimeModules.dep97");
   }
   return (
     <Card className="border-destructive/40">
@@ -189,7 +199,7 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
         <div className="flex items-start gap-2 text-sm text-destructive">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
-            <p className="font-medium">Could not load this view</p>
+            <p className="font-medium">{t("runtimeModules.dep98")}</p>
             <p className="text-destructive/80">{message}</p>
           </div>
         </div>
@@ -198,9 +208,7 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
             type="button"
             onClick={onRetry}
             className="self-start rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent"
-          >
-            Retry
-          </button>
+          >{t("runtimeModules.dep99")}</button>
         ) : null}
       </CardContent>
     </Card>
@@ -221,6 +229,7 @@ export function PendingBackendNotice({
   body: ReactNode;
   issue?: { identifier: string; href: string };
 }) {
+  useTranslation();
   return (
     <Card className="border-dashed">
       <CardContent className="flex flex-col gap-2 py-8">
@@ -230,8 +239,7 @@ export function PendingBackendNotice({
         </div>
         <p className="max-w-2xl text-sm text-muted-foreground">{body}</p>
         {issue ? (
-          <a href={issue.href} className="text-sm font-medium text-primary hover:underline">
-            Tracked in {issue.identifier} →
+          <a href={issue.href} className="text-sm font-medium text-primary hover:underline">{t("runtimeModules.dep100")}{issue.identifier} →
           </a>
         ) : null}
       </CardContent>

@@ -1,3 +1,4 @@
+import { t, useTranslation } from "@/i18n";
 import type { ProviderTraceMetadata } from "@paperclipai/shared";
 import { Bug, CircleOff } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,28 +27,29 @@ export function ProviderTraceStatusBadge({
   showOff?: boolean;
   className?: string;
 }) {
+  useTranslation();
   const status = trace?.status;
   const expired = trace
     ? new Date(trace.expiresAt).getTime() <= Date.now()
     : false;
   const label = expired
-    ? "Trace expired"
+    ? t("runDependencies.copy0")
     : status === "capturing"
-      ? "Raw tracing enabled"
+      ? t("runDependencies.copy1")
       : status === "complete"
-        ? "Trace captured"
+        ? t("runDependencies.copy2")
         : status === "incomplete"
-          ? "Trace incomplete"
+          ? t("runDependencies.copy3")
           : status === "truncated"
-            ? "Trace truncated"
+            ? t("runDependencies.copy4")
             : status === "expired"
-              ? "Trace expired"
+              ? t("runDependencies.copy5")
               : status === "deleted"
-                ? "Trace deleted"
+                ? t("runDependencies.copy6")
                 : requested
-                  ? "Trace requested"
+                  ? t("runDependencies.copy7")
                   : showOff
-                    ? "Trace off"
+                    ? t("runDependencies.copy8")
                     : null;
   if (!label) return null;
   const warning =
@@ -56,12 +58,14 @@ export function ProviderTraceStatusBadge({
     status === "expired" ||
     status === "deleted" ||
     expired;
-  const Icon = label === "Trace off" ? CircleOff : Bug;
+  const off = !expired && !["capturing", "complete", "incomplete", "truncated", "expired", "deleted"].includes(status ?? "") && !requested && showOff;
+  const muted = off || status === "deleted" || status === "expired" || expired;
+  const Icon = off ? CircleOff : Bug;
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-(length:--text-micro) font-medium",
-        label === "Trace off" || label === "Trace deleted" || label === "Trace expired"
+        muted
           ? "border-border bg-background text-muted-foreground"
           : warning
             ? "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
@@ -70,10 +74,10 @@ export function ProviderTraceStatusBadge({
       )}
       title={
         trace
-          ? `${trace.frameCount} frames · ${trace.byteCount} bytes · expires ${new Date(trace.expiresAt).toLocaleString()}`
+          ? t("runDependencies.traceSummary", { frames: trace.frameCount, bytes: trace.byteCount, date: new Date(trace.expiresAt).toLocaleString() })
           : requested
-            ? "This run requested sensitive provider-frame capture."
-            : "Raw provider-frame capture was disabled for this run."
+            ? t("runDependencies.copy13")
+            : t("runDependencies.copy14")
       }
     >
       <Icon className="h-3 w-3" />
