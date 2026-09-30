@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { i18n } from "../i18n";
+
 import { act, useEffect, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -101,7 +103,8 @@ describe("BreadcrumbBar", () => {
   let container: HTMLDivElement;
   let root: Root;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     viewport.isMobile = false;
     container = document.createElement("div");
     document.body.appendChild(container);

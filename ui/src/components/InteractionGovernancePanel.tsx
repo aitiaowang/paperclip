@@ -1,3 +1,4 @@
+import { useTranslation } from "@/i18n";
 import { Fragment } from "react";
 import {
   ISSUE_THREAD_INTERACTION_KINDS,
@@ -16,14 +17,6 @@ import {
 } from "@/components/ui/select";
 import { resolverPolicyLabel } from "../lib/interaction-audience";
 
-const INTERACTION_KIND_LABELS: Record<IssueThreadInteractionKind, string> = {
-  suggest_tasks: "Suggested tasks",
-  ask_user_questions: "Ask user questions",
-  request_confirmation: "Confirmations",
-  request_checkbox_confirmation: "Checkbox confirmations",
-  request_item_verdicts: "Item verdicts",
-  connection_intent: "Connection requests",
-};
 
 /**
  * Sentinel for "no override" — Radix Select disallows empty-string item values.
@@ -149,7 +142,18 @@ function GovernanceSelect({
   ariaLabel: string;
   mobileLabel: string;
 }) {
-  const options = governanceOptions(field);
+  const { t } = useTranslation();
+  const labelFor = (value: GovernanceSelectValue) => t(
+    value === GOVERNANCE_UNSET
+      ? `settingsUi.governance.unset.${field}`
+      : `settingsUi.governance.policy.${normalizeIssueThreadInteractionResolverPolicy(value)}`,
+    { defaultValue: governanceValueLabel(field, value) },
+  );
+  const options = governanceOptions(field).map((option) => ({
+    ...option,
+    label: labelFor(option.value),
+    effect: t(`settingsUi.governance.effect.${field}.${option.value}`, { defaultValue: option.effect }),
+  }));
   return (
     <div className="min-w-0">
       {/*
@@ -182,7 +186,7 @@ function GovernanceSelect({
            * sets `valueNodeHasChildren`, which suppresses that portal, so the
            * trigger shows exactly the label and nothing else.
            */}
-          <SelectValue>{governanceValueLabel(field, value)}</SelectValue>
+          <SelectValue>{labelFor(value)}</SelectValue>
         </SelectTrigger>
         {/*
          * Cap the option list so the effect sentences wrap instead of stretching
@@ -236,22 +240,15 @@ export function InteractionGovernancePanel({
   isPending?: boolean;
   errorMessage?: string | null;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4" data-testid="company-settings-interaction-governance-section">
       <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        Interaction governance
+        {t("settingsUi.governanceTitle")}
       </div>
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Thread interactions are open by default:{" "}
-          <span className="font-medium text-foreground">Anyone</span> in the organization — the
-          board or any agent, including the one that asked — can respond. Narrow a kind
-          only when you need to.{" "}
-          <span className="font-medium text-foreground">Default policy</span> is the
-          audience new cards get when the requester does not ask for one;{" "}
-          <span className="font-medium text-foreground">Cap</span> narrows every request of
-          that kind and can never widen one. Tool-approval confirmations always stay{" "}
-          <span className="font-medium text-foreground">Human only</span>.
+          {t("settingsUi.governance.description")}
         </p>
         {/*
          * Responsive: below `sm` the row collapses to a single column so the
@@ -262,25 +259,25 @@ export function InteractionGovernancePanel({
          */}
         <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-x-4 sm:gap-y-2.5">
           <div className="hidden text-xs font-medium text-muted-foreground uppercase tracking-wide sm:block">
-            Kind
+            {t("settingsUi.governanceKind")}
           </div>
           <div className="hidden text-xs font-medium text-muted-foreground uppercase tracking-wide sm:block">
-            Default policy
+            {t("settingsUi.governanceDefault")}
           </div>
           <div className="hidden text-xs font-medium text-muted-foreground uppercase tracking-wide sm:block">
-            Cap
+            {t("settingsUi.governanceCap")}
           </div>
           {ISSUE_THREAD_INTERACTION_KINDS.map((kind) => {
             const entry = governance[kind] ?? {};
-            const kindLabel = INTERACTION_KIND_LABELS[kind];
+            const kindLabel = t(`settingsUi.governance.kind.${kind}`);
             return (
               <Fragment key={kind}>
                 <div className="text-sm font-medium sm:font-normal">{kindLabel}</div>
                 <GovernanceSelect
                   field="defaultPolicy"
                   testId={`governance-${kind}-default`}
-                  ariaLabel={`Default resolver audience for ${kindLabel}`}
-                  mobileLabel="Default policy"
+                  ariaLabel={t("settingsUi.governance.defaultAria", { kind: kindLabel })}
+                  mobileLabel={t("settingsUi.governanceDefault")}
                   value={toGovernanceSelectValue(entry.defaultPolicy)}
                   disabled={isPending}
                   onChange={(v) => onChange(kind, "defaultPolicy", v)}
@@ -288,8 +285,8 @@ export function InteractionGovernancePanel({
                 <GovernanceSelect
                   field="cap"
                   testId={`governance-${kind}-cap`}
-                  ariaLabel={`Resolver cap for ${kindLabel}`}
-                  mobileLabel="Cap"
+                  ariaLabel={t("settingsUi.governance.capAria", { kind: kindLabel })}
+                  mobileLabel={t("settingsUi.governanceCap")}
                   value={toGovernanceSelectValue(entry.cap)}
                   disabled={isPending}
                   onChange={(v) => onChange(kind, "cap", v)}

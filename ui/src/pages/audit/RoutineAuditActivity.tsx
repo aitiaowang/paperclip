@@ -1,3 +1,4 @@
+import { useTranslation } from "@/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { Activity } from "lucide-react";
 import { routinesApi } from "@/api/routines";
@@ -13,6 +14,7 @@ export function RoutineAuditActivity({
   companyId: string;
   routineId: string;
 }) {
+  const { t } = useTranslation();
   const activity = useQuery({
     queryKey: [...queryKeys.routines.activity(companyId, routineId), "audit"],
     queryFn: async () => {
@@ -29,9 +31,7 @@ export function RoutineAuditActivity({
 
   if (activity.isLoading) {
     return (
-      <div className="border-y border-border py-14 text-center text-sm text-muted-foreground">
-        Loading routine activity…
-      </div>
+      <div className="border-y border-border py-14 text-center text-sm text-muted-foreground">{t("routineHistory.loadingActivity")}</div>
     );
   }
 
@@ -39,22 +39,20 @@ export function RoutineAuditActivity({
     return (
       <div className="flex flex-col items-center gap-3 border-y border-border py-14 text-center">
         <p className="text-sm text-muted-foreground">
-          {activity.error instanceof Error ? activity.error.message : "Failed to load routine activity."}
+          {activity.error instanceof Error ? activity.error.message : t("routineHistory.activityFailed")}
         </p>
-        <Button variant="outline" size="sm" onClick={() => activity.refetch()}>
-          Try again
-        </Button>
+        <Button variant="outline" size="sm" onClick={() => activity.refetch()}>{t("routineHistory.tryAgain")}</Button>
       </div>
     );
   }
 
   const events = activity.data ?? [];
   if (events.length === 0) {
-    return <EmptyState icon={Activity} message="No routine activity yet." />;
+    return <EmptyState icon={Activity} message={t("routineHistory.noActivity")} />;
   }
 
   return (
-    <div className="border-y border-border" aria-label="Routine activity">
+    <div className="border-y border-border" aria-label={t("routineHistory.activity")}>
       {events.map((event) => (
         <RoutineActivityRow key={event.id} event={event} />
       ))}

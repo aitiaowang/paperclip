@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="zh-CN" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -70,6 +70,40 @@
         const title = document.getElementById("paperclip-startup-title");
         const message = document.getElementById("paperclip-startup-message");
         const reload = document.getElementById("paperclip-startup-reload");
+        // Keep the recovery copy independent of modules that may have failed to load.
+        const copy = {
+          en: {
+            failed: "Paperclip couldn’t start",
+            failureMessage: "Part of the app failed to load. Check your connection and reload this page to try again.",
+            slow: "Paperclip is taking longer to load",
+            slowMessage: "You can keep waiting, or reload this page to try again.",
+            reload: "Reload page",
+          },
+          "zh-CN": {
+            failed: "Paperclip 无法启动",
+            failureMessage: "部分内容加载失败，请检查连接并刷新页面重试。",
+            slow: "Paperclip 加载时间较长",
+            slowMessage: "你可以继续等待，或刷新页面重试。",
+            reload: "刷新页面",
+          },
+        };
+        let state = "failed";
+        const renderCopy = () => {
+          let locale = "zh-CN";
+          try {
+            if (window.localStorage.getItem("paperclip.ui.locale") === "en") locale = "en";
+          } catch { /* Use the app's default language if browser storage is unavailable. */ }
+          document.documentElement.lang = locale;
+          const text = copy[locale];
+          title.textContent = text[state];
+          message.textContent = state === "slow" ? text.slowMessage : text.failureMessage;
+          reload.textContent = text.reload;
+        };
+        const onLanguageChange = (event) => {
+          if (event.key === "paperclip.ui.locale") renderCopy();
+        };
+        renderCopy();
+        window.addEventListener("storage", onLanguageChange);
         const retry = () => window.location.reload();
         const finished = () => root.childElementCount > 0;
         const cleanup = () => {
@@ -77,13 +111,14 @@
           observer.disconnect();
           window.removeEventListener("error", onError, true);
           window.removeEventListener("unhandledrejection", onFailure);
+          window.removeEventListener("storage", onLanguageChange);
           reload.removeEventListener("click", retry);
           notice.remove();
         };
         const onFailure = () => {
           if (finished()) return cleanup();
-          title.textContent = "Paperclip couldn’t start";
-          message.textContent = "Part of the app failed to load. Check your connection and reload this page to try again.";
+          state = "failed";
+          renderCopy();
           notice.hidden = false;
         };
         const onError = (event) => {
@@ -97,8 +132,8 @@
         const timer = setTimeout(() => {
           if (finished()) return cleanup();
           if (!notice.hidden) return;
-          title.textContent = "Paperclip is taking longer to load";
-          message.textContent = "You can keep waiting, or reload this page to try again.";
+          state = "slow";
+          renderCopy();
           notice.hidden = false;
         }, 30_000);
         window.addEventListener("error", onError, true);

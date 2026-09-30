@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { i18n } from "../i18n";
+
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -298,7 +300,8 @@ async function flushReact() {
 describe("Layout", () => {
   let container: HTMLDivElement;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     currentPathname = "/PAP/dashboard";

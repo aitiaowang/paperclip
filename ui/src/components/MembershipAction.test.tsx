@@ -1,3 +1,4 @@
+import { changeLocale } from "../i18n";
 // @vitest-environment jsdom
 
 import type { ReactNode } from "react";
@@ -22,6 +23,7 @@ describe("MembershipAction", () => {
   let root: ReturnType<typeof createRoot> | null;
 
   beforeEach(() => {
+    changeLocale("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     root = null;

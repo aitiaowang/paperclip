@@ -1,3 +1,4 @@
+import { useTranslation } from "../i18n";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { SetupWizardSidebarOutlet } from "./SetupWizard";
 import { ChatSetupSidebarProvider } from "@/context/ChatSetupSidebarContext";
@@ -80,6 +81,7 @@ const RESERVED_APP_SUBPATHS = new Set([
 ]);
 
 export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
+  const { t } = useTranslation();
   const {
     sidebarOpen,
     setSidebarOpen,
@@ -630,7 +632,7 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-(--z-200) focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        Skip to Main Content
+        {t("shellExtra.navigation.skipMain")}
       </a>
       <WorktreeBanner />
       <DevRestartBanner devServer={health?.devServer} />
@@ -640,7 +642,7 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
             type="button"
             className="fixed inset-0 z-40 bg-black/50"
             onClick={() => setSidebarOpen(false)}
-            aria-label="Close sidebar"
+            aria-label={t("shellExtra.navigation.closeSidebar")}
           />
         )}
 

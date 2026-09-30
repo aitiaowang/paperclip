@@ -10,10 +10,11 @@
 
 import { AlertTriangle, ShieldCheck } from "lucide-react";
 import { useCallback, useState } from "react";
+import { useTranslation } from "@/i18n";
 
 import { InlineBanner } from "@/components/InlineBanner";
 import { Button } from "@/components/ui/button";
-import { classifySkillDenial, type SkillDenial } from "@/lib/skill-policy-denial";
+import { classifySkillDenial, type SkillDenial, type SkillDenialAction } from "@/lib/skill-policy-denial";
 
 // ---------------------------------------------------------------------------
 // Denial banner state hook
@@ -28,7 +29,7 @@ export interface SkillPolicyDenialController {
    * `true` is returned so the caller can suppress its transient error toast.
    * Everything else returns `false` — the caller keeps the existing toast path.
    */
-  capture: (error: unknown, actionLabel?: string) => boolean;
+  capture: (error: unknown, actionLabel?: SkillDenialAction) => boolean;
   /** Clear the banner (dismiss, or on a subsequent successful action). */
   reset: () => void;
 }
@@ -41,7 +42,7 @@ export interface SkillPolicyDenialController {
  */
 export function useSkillPolicyDenial(): SkillPolicyDenialController {
   const [denial, setDenial] = useState<SkillDenial | null>(null);
-  const capture = useCallback((error: unknown, actionLabel?: string) => {
+  const capture = useCallback((error: unknown, actionLabel?: SkillDenialAction) => {
     const classified = classifySkillDenial(error, actionLabel);
     if (classified) {
       setDenial(classified);
@@ -71,9 +72,12 @@ export function SkillPolicyDenialNotice({
   onDismiss?: () => void;
   className?: string;
 }) {
+  const { t } = useTranslation();
+  const action = denial.i18n?.action;
+  const actionLabel = typeof action === "string" ? action : action ? t(action.key, { defaultValue: action.defaultValue ?? action.key }) : undefined;
   const actions = onDismiss ? (
     <Button variant="ghost" size="sm" onClick={onDismiss}>
-      Dismiss
+      {t("skillsDialogs.policy.dismiss")}
     </Button>
   ) : undefined;
 
@@ -81,11 +85,11 @@ export function SkillPolicyDenialNotice({
     <InlineBanner
       tone="warning"
       icon={denial.state === "policy" ? ShieldCheck : AlertTriangle}
-      title={denial.title}
+      title={denial.i18n ? t(denial.i18n.titleKey, { action: actionLabel }) : denial.title}
       actions={actions}
       className={className}
     >
-      <p>{denial.remediation}</p>
+      <p>{denial.i18n?.remediationKey ? t(denial.i18n.remediationKey) : denial.remediation}</p>
     </InlineBanner>
   );
 }

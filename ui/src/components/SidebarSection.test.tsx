@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { i18n } from "../i18n";
+
 import { act } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
@@ -57,7 +59,8 @@ describe("SidebarSection", () => {
   let container: HTMLDivElement;
   let root: ReturnType<typeof createRoot> | null;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     sidebarState.isMobile = false;
     sidebarState.collapsed = false;
     sidebarState.peeking = false;

@@ -1,3 +1,4 @@
+import { useTranslation } from "../../i18n";
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -56,6 +57,7 @@ export function AiConnectionField({
   legacy?: boolean;
   readOnly?: boolean;
 }) {
+  const { t } = useTranslation();
   const provider = aiProviderForAdapter(adapterType);
   const returnFocus = useRef<HTMLElement | null>(null);
   const restoreFocus = (event: Event) => { event.preventDefault(); returnFocus.current?.focus(); };
@@ -87,8 +89,7 @@ export function AiConnectionField({
     <div className="space-y-4">
       {value && (adapterType !== "opencode_local" || Boolean(model)) && !isAiConnectionCompatible(value, adapterType, model) && (
         <p role="alert" className="text-sm text-destructive">
-          This connection does not support the current harness and model. Choose
-          a compatible connection before saving.
+          {t("newAgentSetup.ai.incompatible")}
         </p>
       )}
       <AiConnectionPicker
@@ -115,30 +116,27 @@ export function AiConnectionField({
       >
         <DialogContent className="max-h-(--sz-85vh) overflow-y-auto sm:max-w-2xl" onCloseAutoFocus={restoreFocus}>
           <DialogHeader>
-            <DialogTitle>Adopt Connections for {agentName}</DialogTitle>
+            <DialogTitle>{t("newAgentSetup.ai.adoptTitle", { name: agentName })}</DialogTitle>
             <DialogDescription>
-              Saving tests this account in {agentName}’s environment before
-              replacing its existing authentication. Other agents keep their
-              current configuration.
+              {t("newAgentSetup.ai.adoptHelp", { name: agentName })}
             </DialogDescription>
           </DialogHeader>
           <p className="text-sm">
             {pendingAdoption?.mode === "responsible_user"
-              ? `Responsible user’s default. For you: ${accounts.data?.connections.find((account) => account.isDefault && account.provider === provider)?.name ?? "Not connected"}. Other users use their own default.`
+              ? t("newAgentSetup.ai.adoptionDefault", { account: accounts.data?.connections.find((account) => account.isDefault && account.provider === provider)?.name ?? t("newAgentSetup.ai.notConnected") })
               : accounts.data?.connections.find(
                   (account) => account.id === pendingAdoption?.connectionId,
                 )?.name}
           </p>
           <p className="text-xs text-muted-foreground">
-            After adoption, missing credentials block execution. Previous
-            authentication will not be used as a fallback.
+            {t("newAgentSetup.ai.adoptionWarning")}
           </p>
           <DialogFooter>
             <Button
               variant="ghost"
               onClick={() => setPendingAdoption(undefined)}
             >
-              Cancel
+              {t("newAgentSetup.ai.cancel")}
             </Button>
             <Button
               onClick={() => {
@@ -146,7 +144,7 @@ export function AiConnectionField({
                 setPendingAdoption(undefined);
               }}
             >
-              Use this binding when saved
+              {t("newAgentSetup.ai.useBinding")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -154,7 +152,7 @@ export function AiConnectionField({
       <Dialog open={connecting} onOpenChange={setConnecting}>
         <DialogContent className="max-h-(--sz-85vh) overflow-y-auto sm:max-w-2xl" onCloseAutoFocus={restoreFocus}>
           <DialogHeader>
-            <DialogTitle>Connect account</DialogTitle>
+            <DialogTitle>{t("newAgentSetup.ai.connectAccount")}</DialogTitle>
           </DialogHeader>
           <AiConnectionCredentialStep
             companyId={companyId}

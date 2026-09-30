@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { queryKeys } from "@/lib/queryKeys";
 import { NewAgent } from "./NewAgent";
 import { ApiError } from "@/api/client";
+import { changeLocale } from "../i18n";
 
 const api = vi.hoisted(() => ({
   get: vi.fn(),
@@ -155,6 +156,7 @@ const pass = {
   testedAt: "2026-09-07T00:00:00Z",
 };
 beforeEach(() => {
+  changeLocale("en");
   vi.clearAllMocks();
   container = document.createElement("div");
   document.body.append(container);
@@ -198,6 +200,69 @@ afterEach(async () => {
   container.remove();
 });
 describe("New agent setup", () => {
+  it("switches setup language while preserving repository drafts and submitting original values", async () => {
+    await render("cursor_cloud");
+    await fill("GitHub repository", "https://github.com/example/my-project");
+    await fill("Branch", "feature/my-draft");
+    await fill("CURSOR_API_KEY", "draft-api-key");
+    await act(async () => changeLocale("zh-CN"));
+    expect(container.textContent).toContain("配置员工");
+    expect(container.textContent).toContain("测试员工");
+    expect(container.querySelector<HTMLInputElement>('[aria-label="GitHub 仓库"]')?.value).toBe("https://github.com/example/my-project");
+    expect(container.querySelector<HTMLInputElement>('[aria-label="分支"]')?.value).toBe("feature/my-draft");
+    expect(container.querySelector<HTMLInputElement>('[aria-label="CURSOR_API_KEY"]')?.value).toBe("draft-api-key");
+    await click("完成设置");
+    expect(api.hire).toHaveBeenCalledTimes(1);
+    expect(api.hire.mock.calls[0][1]).toMatchObject({ name: "Atlas", adapterType: "cursor_cloud", adapterConfig: { repoUrl: "https://github.com/example/my-project", repoStartingRef: "feature/my-draft" } });
+    expect(container.textContent).toContain("员工已准备就绪");
+    await act(async () => changeLocale("en"));
+    expect(container.textContent).toContain("Your agent is ready");
+    expect(api.hire).toHaveBeenCalledTimes(1);
+  });
+
+  it("switches validation errors and effort labels without translating API option values", async () => {
+    await render("pi_local");
+    await click("Run test");
+    await act(async () => changeLocale("zh-CN"));
+    expect(container.textContent).toContain("请选择或输入 provider/model 格式的模型");
+    const effort = container.querySelector<HTMLSelectElement>('[aria-label="思考强度"]')!;
+    expect([...effort.options].map(option => option.value)).toContain("high");
+    expect(effort.textContent).toContain("高");
+    await act(async () => { effort.value = "high"; effort.dispatchEvent(new Event("change", { bubbles: true })); });
+    await fill("Model", "openrouter/example/model-1");
+    await act(async () => changeLocale("en"));
+    expect(container.querySelector<HTMLSelectElement>('[aria-label="Thinking effort"]')?.value).toBe("high");
+    await click("Finish setup");
+    expect(api.hire.mock.calls[0][1].adapterConfig).toMatchObject({ model: "openrouter/example/model-1", thinking: "high" });
+  });
+
+  it("switches an open account dialog without losing its name or API key", async () => {
+    await render("opencode_local");
+    await fill("Model", "openrouter/example/model-1");
+    await click("Connect another account");
+    const dialog = document.querySelector('[role="dialog"]')!;
+    const name = dialog.querySelector<HTMLInputElement>("label input")!;
+    const apiKey = dialog.querySelector<HTMLInputElement>('input[type="password"]')!;
+    await act(async () => {
+      for (const [input, value] of [[name, "Team account draft"], [apiKey, "private-draft-key"]] as const) {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    });
+    await act(async () => changeLocale("zh-CN"));
+    expect(dialog.textContent).toContain("连接账号");
+    expect(dialog.textContent).toContain("连接名称");
+    expect(name.value).toBe("Team account draft");
+    expect(apiKey.value).toBe("private-draft-key");
+    const connect = [...dialog.querySelectorAll("button")].find(button => button.textContent?.trim() === "连接")!;
+    await act(async () => connect.click());
+    await settle();
+    expect(managedApi.create).toHaveBeenCalledWith("company-1", expect.objectContaining({ name: "Team account draft", provider: "openrouter", method: "api_key", apiKey: "private-draft-key" }));
+    expect(api.hire).not.toHaveBeenCalled();
+    await act(async () => changeLocale("en"));
+    await click("Finish setup");
+    expect(api.hire.mock.calls[0][1].runtimeConfig.aiConnection).toEqual({ provider: "openrouter", method: "api_key", mode: "responsible_user" });
+  });
   it.each([false, true])("selects the Grok sandbox before connecting (managed-only=%s)", async (managedOnly) => {
     settings.getExperimental.mockResolvedValue({ enableNativeRunner: true, enableManagedSandboxOnly: managedOnly });
     envApi.list.mockResolvedValue([

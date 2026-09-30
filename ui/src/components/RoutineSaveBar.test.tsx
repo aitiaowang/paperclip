@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import type React from "react";
+import { changeLocale } from "../i18n";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +16,7 @@ let container: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 
 beforeEach(() => {
+  changeLocale("en");
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -91,5 +93,21 @@ describe("RoutineSaveBar", () => {
       reload!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(handlers.onReload).toHaveBeenCalledTimes(1);
+  });
+  it("switches an open discard dialog without discarding pending changes", () => {
+    const handlers = renderBar({ dirtyFields: DIRTY });
+    const discard = Array.from(container.querySelectorAll("button")).find(button => button.textContent === "Discard")!;
+    act(() => discard.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(document.body.textContent).toContain("Discard changes?");
+    act(() => changeLocale("zh-CN"));
+    expect(document.body.textContent).toContain("放弃更改？");
+    expect(document.body.textContent).toContain("2 项未保存更改");
+    expect(handlers.onDiscard).not.toHaveBeenCalled();
+    const keep = Array.from(document.querySelectorAll("button")).find(button => button.textContent === "继续编辑")!;
+    act(() => keep.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    act(() => changeLocale("en"));
+    expect(container.textContent).toContain("2 unsaved changes");
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "s", metaKey: true })));
+    expect(handlers.onSave).toHaveBeenCalledTimes(1);
   });
 });

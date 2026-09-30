@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryKeys } from "../lib/queryKeys";
 import { NewIssueDialog } from "./NewIssueDialog";
+import { changeLocale } from "../i18n";
 
 const dialogState = vi.hoisted(() => ({
   newIssueOpen: true,
@@ -324,6 +325,7 @@ describe("NewIssueDialog", () => {
   let originalInnerHeightDescriptor: PropertyDescriptor | undefined;
 
   beforeEach(() => {
+    changeLocale("en");
     vi.useRealTimers();
     originalResizeObserver = globalThis.ResizeObserver;
     originalVisualViewportDescriptor = Object.getOwnPropertyDescriptor(window, "visualViewport");
@@ -383,6 +385,34 @@ describe("NewIssueDialog", () => {
       Reflect.deleteProperty(window, "innerHeight");
     }
     document.body.innerHTML = "";
+  });
+
+  it("switches the open composer language without losing the draft or API values", async () => {
+    const { root } = renderDialog(container);
+    await flush();
+    const title = container.querySelector<HTMLTextAreaElement>('textarea[placeholder="Task title"]')!;
+    await typeTextareaValue(title, "Build a customer app");
+    await act(async () => { changeLocale("zh-CN"); });
+    await flush();
+    expect(container.textContent).toContain("新建任务");
+    expect(container.textContent).toContain("自动模式");
+    expect(container.textContent).toContain("待办");
+    expect(container.textContent).toContain("负责人");
+    expect(container.textContent).not.toContain("Create Task");
+    expect(container.querySelector<HTMLTextAreaElement>('textarea[placeholder="任务标题"]')?.value).toBe("Build a customer app");
+    expect(container.querySelector('textarea[aria-label="添加任务说明…"]')).not.toBeNull();
+    await act(async () => { changeLocale("en"); });
+    await flush();
+    expect(container.textContent).toContain("Create Task");
+    expect(container.textContent).toContain("Auto mode");
+    expect(title.value).toBe("Build a customer app");
+    const submit = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("Create Task"))!;
+    await act(async () => { submit.click(); });
+    await flush();
+    expect(mockIssuesApi.create).toHaveBeenCalledWith("company-1", expect.objectContaining({
+      title: "Build a customer app", status: "todo", priority: "medium", workMode: "standard",
+    }));
+    act(() => root.unmount());
   });
 
   it("shows sub-issue context only when opened from a sub-issue action", async () => {

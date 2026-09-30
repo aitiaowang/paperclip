@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { auditSectionHref, type AuditSection } from "./audit/audit-navigation";
 
 export type AgentDetailView =
@@ -20,28 +21,28 @@ export const AGENT_DETAIL_NAVIGATION: ReadonlyArray<{
   items: ReadonlyArray<{ value: AgentLocalDetailView; label: string }>;
 }> = [
   {
-    label: "Agent",
+    get label() { return t("agentDetailShell.nav.0"); },
     items: [
-      { value: "overview", label: "Overview" },
-      { value: "instructions", label: "Instructions" },
-      { value: "skills", label: "Skills" },
+      { value: "overview", get label() { return t("agentDetailShell.nav.1"); } },
+      { value: "instructions", get label() { return t("agentDetailShell.nav.2"); } },
+      { value: "skills", get label() { return t("agentDetailShell.nav.3"); } },
     ],
   },
   {
-    label: "Runtime",
+    get label() { return t("agentDetailShell.nav.4"); },
     items: [
-      { value: "runtime", label: "Harness / Runtime" },
-      { value: "secrets", label: "Secrets" },
-      { value: "tools", label: "Tools" },
-      { value: "channels", label: "Channels" },
+      { value: "runtime", get label() { return t("agentDetailShell.nav.5"); } },
+      { value: "secrets", get label() { return t("agentDetailShell.nav.6"); } },
+      { value: "tools", get label() { return t("agentDetailShell.nav.7"); } },
+      { value: "channels", get label() { return t("agentDetailShell.nav.8"); } },
     ],
   },
   {
-    label: "Governance",
+    get label() { return t("agentDetailShell.nav.9"); },
     items: [
-      { value: "permissions", label: "Permissions / Trust" },
-      { value: "api-keys", label: "API Keys" },
-      { value: "revisions", label: "Revisions" },
+      { value: "permissions", get label() { return t("agentDetailShell.nav.10"); } },
+      { value: "api-keys", get label() { return t("agentDetailShell.nav.11"); } },
+      { value: "revisions", get label() { return t("agentDetailShell.nav.12"); } },
     ],
   },
 ] as const;

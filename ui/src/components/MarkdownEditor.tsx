@@ -1,4 +1,5 @@
 import { AgentAvatar } from "./AgentAvatar";
+import { useTranslation } from "@/i18n";
 import {
   Component,
   type ClipboardEvent,
@@ -37,6 +38,8 @@ import {
   defaultSvgIcons,
   type IconKey,
   type RealmPlugin,
+  type Translation,
+  translation$,
 } from "@mdxeditor/editor";
 import {
   buildAgentMentionHref,
@@ -718,6 +721,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
   onSubmit,
   readOnly = false,
 }: MarkdownEditorProps, forwardedRef) {
+  const { t } = useTranslation();
+  const editorTranslation = useCallback<Translation>((key, defaultValue, interpolations) =>
+    t(`selectorExtra.editor.${key}`, { ...interpolations, defaultValue }), [t]);
   const editorValue = useMemo(() => prepareMarkdownForEditor(value), [value]);
   const { slashCommands: sharedSlashCommands } = useEditorAutocomplete();
   const slashCommands = useMemo(
@@ -984,6 +990,15 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
     }
     return all;
   }, [hasImageUpload]);
+
+  const localizedPlugins = useMemo<RealmPlugin[]>(() => [
+    ...plugins,
+    {
+      // MDXEditor's core plugin reads translation only at initialization.
+      // Publish updates into the existing realm to preserve the draft and undo history.
+      update: (realm) => realm.pub(translation$, editorTranslation),
+    },
+  ], [plugins, editorTranslation]);
 
   useEffect(() => {
     if (editorValue !== latestValueRef.current) {
@@ -1312,7 +1327,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
       >
         <div className="flex items-start justify-between gap-3 px-3 pt-2 text-xs text-muted-foreground">
           <p>
-            Rich editor unavailable for this markdown. Showing raw source instead.{" "}
+            {t("selectorExtra.editorUnavailable")}{" "}
             <span data-testid="markdown-editor-fallback-code" className="font-mono">
               {richEditorError.code}
             </span>
@@ -1328,7 +1343,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
               setRichEditorError(null);
             }}
           >
-            Retry rich editor
+            {t("selectorExtra.retryEditor")}
           </button>
         </div>
         <textarea
@@ -1469,6 +1484,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
     >
       <MarkdownEditorRichErrorBoundary onError={handleRichEditorRenderError}>
         <MDXEditor
+          translation={editorTranslation}
           ref={setEditorRef}
           markdown={editorValue}
           iconComponentFor={editorIconFor}
@@ -1520,7 +1536,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
             contentClassName,
           )}
           additionalLexicalNodes={[MentionAwareLinkNode, mentionAwareLinkNodeReplacement]}
-          plugins={plugins}
+          plugins={localizedPlugins}
         />
       </MarkdownEditorRichErrorBoundary>
 
@@ -1615,27 +1631,27 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
                 )}
                 {option.kind === "issue" && (
                   <span className="ml-auto text-(length:--text-nano) uppercase tracking-wide text-muted-foreground">
-                    Task
+                    {t("selectorExtra.task")}
                   </span>
                 )}
                 {option.kind === "project" && option.projectId && (
                   <span className="ml-auto text-(length:--text-nano) uppercase tracking-wide text-muted-foreground">
-                    Project
+                    {t("selectorExtra.project")}
                   </span>
                 )}
                 {option.kind === "user" && (
                   <span className="ml-auto text-(length:--text-nano) uppercase tracking-wide text-muted-foreground">
-                    User
+                    {t("selectorExtra.user")}
                   </span>
                 )}
                 {option.kind === "skill" && (
                   <span className="ml-auto text-(length:--text-nano) uppercase tracking-wide text-muted-foreground">
-                    Skill
+                    {t("selectorExtra.skill")}
                   </span>
                 )}
                 {option.kind === "routine" && (
                   <span className="ml-auto text-(length:--text-nano) uppercase tracking-wide text-muted-foreground">
-                    Routine
+                    {t("selectorExtra.routine")}
                   </span>
                 )}
                 {option.kind === "action" && (
@@ -1656,11 +1672,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
             !bordered && "inset-0 rounded-sm",
           )}
         >
-          Drop {onDropFile ? "file" : "image"} to upload
+          {t(onDropFile ? "selectorExtra.dropFile" : "selectorExtra.dropImage")}
         </div>
       )}
       {uploadError && (
-        <p className="px-3 pb-2 text-xs text-destructive">{uploadError}</p>
+        <p className="px-3 pb-2 text-xs text-destructive">{uploadError === "Image upload failed" ? t("selectorExtra.imageUploadFailed") : uploadError}</p>
       )}
     </div>
   );

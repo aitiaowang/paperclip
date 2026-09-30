@@ -1,3 +1,4 @@
+import { t, useTranslation } from "../i18n";
 import { AgentCharacter } from "../components/AgentCharacter";
 import { characterStateForAgent } from "@paperclipai/shared";
 import { mergeRunLogChunks, readChunkSeq } from "../lib/run-log-chunks";
@@ -302,7 +303,7 @@ const LEGACY_AGENT_DETAIL_TABS = [
   { value: "configuration", label: "Configuration" },
   { value: "secrets", label: "Secrets" },
   { value: "tools", label: "Tools" },
-  { value: "runs", label: "Runs" },
+  { value: "runs", label: t("agentOverviewUi.textfcde5c32") },
   { value: "audit", label: "Audit" },
   { value: "budget", label: "Budget" },
 ] as const;
@@ -756,6 +757,7 @@ function WorkspaceOperationsSection({
 }
 
 export function AgentDetail() {
+  const { t } = useTranslation();
   const { companyPrefix, agentId, tab: urlTab, runId: urlRunId } = useParams<{
     companyPrefix?: string;
     agentId: string;
@@ -1011,7 +1013,7 @@ export function AgentDetail() {
       }
     },
     onError: (err) => {
-      setActionError(err instanceof Error ? err.message : "Action failed");
+      setActionError(err instanceof Error ? err.message : t("agentHeaderUi.actionFailed"));
     },
   });
 
@@ -1038,31 +1040,31 @@ export function AgentDetail() {
       }
     },
     onError: (err) => {
-      setActionError(err instanceof Error ? err.message : "Failed to update permissions");
+      setActionError(err instanceof Error ? err.message : t("agentHeaderUi.permissionsFailed"));
     },
   });
 
   useEffect(() => {
     const crumbs: { label: string; href?: string }[] = [
-      { label: "Agents", href: "/agents" },
+      { label: t("agentOverviewUi.text64acf7e2"), href: "/agents" },
     ];
-    const agentName = agent?.name ?? routeAgentRef ?? "Agent";
+    const agentName = agent?.name ?? routeAgentRef ?? t("agentOverviewUi.text5ce2e6f4");
     if (activeView === "overview" && !urlRunId) {
       crumbs.push({ label: agentName });
     } else {
       crumbs.push({ label: agentName, href: agentDetailHref(canonicalAgentRef) });
       if (urlRunId) {
-        crumbs.push({ label: "Runs", href: agent?.id ? agentScopedAuditHref(agent.id, "runs") : undefined });
-        crumbs.push({ label: `Run ${urlRunId.slice(0, 8)}` });
+        crumbs.push({ label: t("agentOverviewUi.textfcde5c32"), href: agent?.id ? agentScopedAuditHref(agent.id, "runs") : undefined });
+        crumbs.push({ label: t("agentOverviewUi.text38be6edb", { id: urlRunId.slice(0, 8) }) });
       } else {
         const item = AGENT_DETAIL_NAVIGATION
           .flatMap((section) => section.items)
           .find((candidate) => candidate.value === activeView);
-        crumbs.push({ label: item?.label ?? "Overview" });
+        crumbs.push({ label: item?.label ?? t("agentOverviewUi.text0efc2e6b") });
       }
     }
     setBreadcrumbs(crumbs);
-  }, [setBreadcrumbs, agent, routeAgentRef, canonicalAgentRef, activeView, urlRunId]);
+  }, [t, setBreadcrumbs, agent, routeAgentRef, canonicalAgentRef, activeView, urlRunId]);
 
   useEffect(() => {
     closePanel();
@@ -1184,7 +1186,7 @@ export function AgentDetail() {
       {showLeftAgentNotice ? (
         <div className="flex items-center gap-3 border border-yellow-300/35 bg-yellow-300/10 px-3 py-2 text-sm text-yellow-900 dark:text-yellow-100">
           <p className="min-w-0 flex-1">
-            You left this agent. It no longer appears in your sidebar.
+            {t("agentOverviewUi.text1f21d138")}
           </p>
           <MembershipAction
             compact
@@ -1208,7 +1210,7 @@ export function AgentDetail() {
           <button
             type="button"
             className="h-6 w-6 shrink-0 text-yellow-900/70 hover:text-yellow-900 dark:text-yellow-100/70 dark:hover:text-yellow-100"
-            aria-label="Dismiss agent membership notice"
+            aria-label={t("agentOverviewUi.text0880d155")}
             onClick={() => setDismissedLeftAgentIds((current) => new Set(current).add(agent.id))}
           >
             ×
@@ -1219,7 +1221,7 @@ export function AgentDetail() {
         <div className="flex items-start gap-3 border border-amber-300/35 bg-amber-300/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="min-w-0 space-y-1">
-            <p className="font-medium">Escalation path is paused</p>
+            <p className="font-medium">{t("agentOverviewUi.text19a6f67c")}</p>
             <p className="text-amber-900/90 dark:text-amber-100/90">{pausedEscalationWarning}</p>
           </div>
         </div>
@@ -1228,9 +1230,9 @@ export function AgentDetail() {
         <div className="flex items-start gap-3 border border-amber-300/35 bg-amber-300/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="min-w-0 space-y-1">
-            <p className="font-medium">Invalid reporting chain</p>
+            <p className="font-medium">{t("agentOverviewUi.text720f9d5f")}</p>
             <p className="text-amber-900/90 dark:text-amber-100/90">
-              {agent.name} cannot accept tasks or start runs until its reporting chain is repaired.
+              {t("agentHeaderUi.invalidChain", { name: agent.name })}
             </p>
             <p className="break-words font-mono text-xs text-amber-900/80 dark:text-amber-100/80">
               {formatOrgChainHealthPath(agent)}
@@ -1239,7 +1241,7 @@ export function AgentDetail() {
               <p className="text-amber-900/85 dark:text-amber-100/85">{agent.orgChainHealth.repairGuidance}</p>
             ) : (
               <p className="text-amber-900/85 dark:text-amber-100/85">
-                Assign this agent to an active manager/root, or explicitly pause or terminate the affected agent/subtree.
+                {t("agentOverviewUi.textca5b52f4")}
               </p>
             )}
           </div>
@@ -1248,7 +1250,7 @@ export function AgentDetail() {
       {/* Header */}
       <header className="flex flex-wrap items-center justify-between gap-5 border-b border-border pb-6">
         <div className="flex min-w-0 items-center gap-4">
-          <div role="img" aria-label={`${agent.name} avatar`} className="shrink-0">
+          <div role="img" aria-label={t("agentOverviewUi.textdd5b9bd8", { name: agent.name })} className="shrink-0">
             <AgentCharacter agent={agent} state={characterStateForAgent(agent.status)} size={96} trackingScope="page" />
           </div>
           <div className="min-w-0 space-y-1">
@@ -1258,7 +1260,7 @@ export function AgentDetail() {
                 ? <img src={`/brands/${agent.adapterType === "claude_local" ? "claude" : "codex"}-color.svg`} className="size-4" alt="" />
                 : null}
               <span>{getAdapterDisplay(agent.adapterType).label}</span><span>·</span>
-              <span>{agent.title || roleLabels[agent.role] || agent.role}</span>
+              <span>{agent.title || t(`searchUi.role.${agent.role}`, { defaultValue: roleLabels[agent.role] || agent.role })}</span>
             </div>
           </div>
         </div>
@@ -1278,12 +1280,12 @@ export function AgentDetail() {
           <AgentActionButtons
             agent={agent}
             companyId={resolvedCompanyId}
-            assignLabel="Assign Task"
+            assignLabel={t("agentOverviewUi.texta96a1a48")}
             showStatus={false}
             canRunWithProviderTrace={canUseProviderTrace}
             actionsDisabled={agentAction.isPending}
             workActionsDisabled={hasInvalidOrgChain}
-            workActionsDisabledReason="Repair this agent's reporting chain before assigning tasks or starting runs"
+            workActionsDisabledReason={t("agentOverviewUi.texta22f5f46")}
             hasPendingNavigationChanges={configDirty}
             onBeforeNavigate={prepareAgentNavigation}
             onActionError={setActionError}
@@ -1292,12 +1294,10 @@ export function AgentDetail() {
             pauseConfirm={
               builtInState
                 ? {
-                    title: `Pause the ${builtInState.definition.displayName}?`,
+                    title: t("agentOverviewUi.texte701910e", { name: builtInState.definition.displayName }),
                     description: (
                       <>
-                        {builtInFeatureLabel} depends on this agent. While paused,{" "}
-                        {builtInFeatureLabel.toLowerCase()} generation is skipped and the{" "}
-                        {builtInFeatureLabel} page shows a warning.
+                        {t("agentHeaderUi.pauseNotice", { feature: builtInFeatureLabel })}
                       </>
                     ),
                   }
@@ -1313,7 +1313,7 @@ export function AgentDetail() {
                   <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
                 </span>
-                <span className="text-(length:--text-micro) font-medium text-blue-600 dark:text-blue-400">Live</span>
+                <span className="text-(length:--text-micro) font-medium text-blue-600 dark:text-blue-400">{t("agentOverviewUi.text65c821a5")}</span>
               </Link>
             )}
           </AgentActionButtons>
@@ -1323,7 +1323,7 @@ export function AgentDetail() {
       {builtInState && (
         <InlineBanner
           tone="info"
-          title="Built-in agent"
+          title={t("agentHeaderUi.builtIn")}
           actions={
             <Button
               variant="outline"
@@ -1331,13 +1331,11 @@ export function AgentDetail() {
               onClick={() => resetBuiltIn.mutate()}
               disabled={resetBuiltIn.isPending}
             >
-              {resetBuiltIn.isPending ? "Resetting…" : "Reset to defaults"}
+              {resetBuiltIn.isPending ? t("agentHeaderUi.resetting") : t("agentHeaderUi.reset")}
             </Button>
           }
         >
-          Ships with Paperclip and powers <strong>{builtInFeatureLabel}</strong>. Configure it like
-          any agent — model, instructions, budget. It can be paused but not deleted; pausing it
-          pauses {builtInFeatureLabel}.
+          {t("agentHeaderUi.builtInDescription", { feature: builtInFeatureLabel })}
         </InlineBanner>
       )}
 
@@ -1372,7 +1370,7 @@ export function AgentDetail() {
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}
       {isPendingApproval && (
         <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-400/40 dark:bg-amber-950/30 dark:text-amber-200">
-          <span>This agent is pending board approval and cannot be invoked yet.</span>
+          <span>{t("agentOverviewUi.text4ef8b0e4")}</span>
           <Button
             variant="outline"
             size="sm"
@@ -1380,12 +1378,12 @@ export function AgentDetail() {
             disabled={agentAction.isPending}
           >
             <CheckCircle2 className="h-3.5 w-3.5 sm:mr-1" />
-            <span>Approve agent</span>
+            <span>{t("agentOverviewUi.text276f840a")}</span>
           </Button>
         </div>
       )}
 
-      {activeView !== "run-detail" && activeView !== "channels" && <h2 className="text-xl font-semibold">{activeView === "secrets" ? "Secrets & variables" : AGENT_DETAIL_NAVIGATION.flatMap(section => section.items).find(item => item.value === activeView)?.label}</h2>}
+      {activeView !== "run-detail" && activeView !== "channels" && <h2 className="text-xl font-semibold">{activeView === "secrets" ? t("agentOverviewUi.text0642a879") : AGENT_DETAIL_NAVIGATION.flatMap(section => section.items).find(item => item.value === activeView)?.label}</h2>}
 
       {/* View content */}
       {activeView === "overview" && (
@@ -1566,6 +1564,7 @@ function LatestRunCard({
   agentId: string;
   issuesById: Map<string, LatestRunIssue>;
 }) {
+  useTranslation();
   const sorted = useMemo(
     () =>
       [...runs].sort(
@@ -1647,7 +1646,7 @@ function LatestRunCard({
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
               </span>
             )}
-            <span>{isLive ? "Live Run" : "Latest Run"}</span>
+            <span>{isLive ? t("agentOverviewUi.texteb981f13") : t("agentOverviewUi.textc1a81e5c")}</span>
             <span className="font-mono text-xs font-normal text-muted-foreground">
               &middot; {run.id.slice(0, 8)}
             </span>
@@ -1721,6 +1720,7 @@ export function AgentOverview({
   skillNames: string[];
   agentRouteId: string;
 }) {
+  const { t } = useTranslation();
   const issuesById = useMemo(() => {
     const map = new Map<string, (typeof assignedIssues)[number]>();
     for (const issue of assignedIssues) map.set(issue.id, issue);
@@ -1729,7 +1729,7 @@ export function AgentOverview({
   const configuredModel = asNonEmptyString(agent.adapterConfig?.model)
     ?? asNonEmptyString(agent.adapterConfig?.modelName)
     ?? asNonEmptyString(agent.runtimeConfig?.model)
-    ?? "Adapter default";
+    ?? t("agentOverviewUi.text77513bac");
   const lastRun = runs[0] ?? null;
 
   return (
@@ -1739,75 +1739,75 @@ export function AgentOverview({
       <div className="grid gap-4 md:grid-cols-2">
         <section className="rounded-lg border border-border p-4" aria-labelledby="agent-identity-heading">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h3 id="agent-identity-heading" className="text-sm font-medium">Identity</h3>
+            <h3 id="agent-identity-heading" className="text-sm font-medium">{t("agentOverviewUi.text7e5a975b")}</h3>
             <StatusBadge status={agent.status} />
           </div>
           <div className="space-y-3">
-            <SummaryRow label="Role"><span className="text-sm">{roleLabels[agent.role] ?? agent.role}</span></SummaryRow>
-            <SummaryRow label="Title"><span className="text-sm">{agent.title ?? "Not set"}</span></SummaryRow>
-            <SummaryRow label="Reports to">
+            <SummaryRow label={t("agentOverviewUi.textc3f104d1")}><span className="text-sm">{t(`searchUi.role.${agent.role}`, { defaultValue: roleLabels[agent.role] ?? agent.role })}</span></SummaryRow>
+            <SummaryRow label={t("agentOverviewUi.text768e0c1c")}><span className="text-sm">{agent.title ?? t("agentOverviewUi.text93039e60")}</span></SummaryRow>
+            <SummaryRow label={t("agentOverviewUi.text655fe3da")}>
               {reportsToAgent ? (
                 <Link className="text-sm hover:underline" to={agentDetailHref(agentRouteRef(reportsToAgent))}>
                   {reportsToAgent.name}
                 </Link>
-              ) : <span className="text-sm">Board</span>}
+              ) : <span className="text-sm">{t("agentOverviewUi.texte879b0be")}</span>}
             </SummaryRow>
-            <SummaryRow label="Direct reports"><span className="text-sm tabular-nums">{directReportCount}</span></SummaryRow>
+            <SummaryRow label={t("agentOverviewUi.textec7faa49")}><span className="text-sm tabular-nums">{directReportCount}</span></SummaryRow>
           </div>
         </section>
 
         <section className="rounded-lg border border-border p-4" aria-labelledby="agent-runtime-heading">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h3 id="agent-runtime-heading" className="text-sm font-medium">Harness / Runtime</h3>
-            <Link className="text-xs text-muted-foreground hover:text-foreground" to={agentDetailHref(agentRouteId, "runtime")}>Configure</Link>
+            <h3 id="agent-runtime-heading" className="text-sm font-medium">{t("agentOverviewUi.text90bf15c6")}</h3>
+            <Link className="text-xs text-muted-foreground hover:text-foreground" to={agentDetailHref(agentRouteId, "runtime")}>{t("agentOverviewUi.text792c81a4")}</Link>
           </div>
           <div className="space-y-3">
-            <SummaryRow label="Adapter"><span className="text-sm">{adapterLabels[agent.adapterType] ?? agent.adapterType}</span></SummaryRow>
-            <SummaryRow label="Model"><span className="max-w-64 truncate text-sm font-mono">{configuredModel}</span></SummaryRow>
-            <SummaryRow label="Session"><span className="max-w-64 truncate text-sm font-mono">{runtimeState?.sessionDisplayId ?? runtimeState?.sessionId ?? "No session"}</span></SummaryRow>
-            <SummaryRow label="Last run">
-              <span className="text-sm">{lastRun ? `${lastRun.status} · ${relativeTime(lastRun.createdAt)}` : "No runs"}</span>
+            <SummaryRow label={t("agentOverviewUi.texte6b4616c")}><span className="text-sm">{adapterLabels[agent.adapterType] ?? agent.adapterType}</span></SummaryRow>
+            <SummaryRow label={t("agentOverviewUi.text68c2cc7f")}><span className="max-w-64 truncate text-sm font-mono">{configuredModel}</span></SummaryRow>
+            <SummaryRow label={t("agentOverviewUi.textf7f1997c")}><span className="max-w-64 truncate text-sm font-mono">{runtimeState?.sessionDisplayId ?? runtimeState?.sessionId ?? t("agentOverviewUi.text5277a760")}</span></SummaryRow>
+            <SummaryRow label={t("agentOverviewUi.text333c63a5")}>
+              <span className="text-sm">{lastRun ? `${t(`statusUi.generic.${lastRun.status}`, { defaultValue: lastRun.status })} · ${relativeTime(lastRun.createdAt)}` : t("agentOverviewUi.textf9d181f2")}</span>
             </SummaryRow>
           </div>
         </section>
 
         <section className="rounded-lg border border-border p-4" aria-labelledby="agent-capabilities-heading">
-          <h3 id="agent-capabilities-heading" className="mb-3 text-sm font-medium">Capabilities</h3>
+          <h3 id="agent-capabilities-heading" className="mb-3 text-sm font-medium">{t("agentOverviewUi.textca09c54b")}</h3>
           {agent.capabilities?.trim() ? (
             <MarkdownBody className="text-sm [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">{agent.capabilities}</MarkdownBody>
           ) : (
-            <p className="text-sm text-muted-foreground">No capability summary has been added.</p>
+            <p className="text-sm text-muted-foreground">{t("agentOverviewUi.text0a51de3e")}</p>
           )}
         </section>
 
         <section className="rounded-lg border border-border p-4" aria-labelledby="agent-skills-heading">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 id="agent-skills-heading" className="text-sm font-medium">Skills</h3>
-            <Link className="text-xs text-muted-foreground hover:text-foreground" to={agentDetailHref(agentRouteId, "skills")}>Manage</Link>
+            <h3 id="agent-skills-heading" className="text-sm font-medium">{t("agentOverviewUi.texte09212c7")}</h3>
+            <Link className="text-xs text-muted-foreground hover:text-foreground" to={agentDetailHref(agentRouteId, "skills")}>{t("agentOverviewUi.textbf58d17e")}</Link>
           </div>
           {skillNames.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {skillNames.slice(0, 8).map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}
-              {skillNames.length > 8 ? <Badge variant="outline">+{skillNames.length - 8} more</Badge> : null}
+              {skillNames.length > 8 ? <Badge variant="outline">{t("agentOverviewUi.text8b304163", { count: skillNames.length - 8 })}</Badge> : null}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No skills enabled.</p>
+            <p className="text-sm text-muted-foreground">{t("agentOverviewUi.textc4242855")}</p>
           )}
         </section>
       </div>
 
       <section className="space-y-3" aria-labelledby="agent-recent-tasks-heading">
         <div className="flex items-center justify-between">
-          <h3 id="agent-recent-tasks-heading" className="text-sm font-medium">Recent Tasks</h3>
+          <h3 id="agent-recent-tasks-heading" className="text-sm font-medium">{t("agentOverviewUi.textb91b9398")}</h3>
           <Link
             to={`/issues?participantAgentId=${agent.id}`}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
-            See All &rarr;
+            {t("agentOverviewUi.text4727d4db")}
           </Link>
         </div>
         {assignedIssues.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No recent tasks.</p>
+          <p className="text-sm text-muted-foreground">{t("agentOverviewUi.text5cdb1b31")}</p>
         ) : (
           <div className="overflow-hidden rounded-lg border border-border">
             {assignedIssues.slice(0, 6).map((issue) => (
@@ -1821,7 +1821,7 @@ export function AgentOverview({
             ))}
             {assignedIssues.length > 6 && (
               <div className="border-t border-border px-3 py-2 text-center text-xs text-muted-foreground">
-                +{assignedIssues.length - 6} more tasks
+                {t("agentOverviewUi.text7dc844a2", { count: assignedIssues.length - 6 })}
               </div>
             )}
           </div>
@@ -1829,15 +1829,15 @@ export function AgentOverview({
       </section>
 
       <section className="space-y-3" aria-labelledby="agent-audit-links-heading">
-        <h3 id="agent-audit-links-heading" className="text-sm font-medium">Audit</h3>
+        <h3 id="agent-audit-links-heading" className="text-sm font-medium">{t("agentOverviewUi.textfa1703dd")}</h3>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {(["activity", "runs", "costs", "budgets"] as const).map((section) => (
             <Link
-              key={section}
+              key={({activity: t("agentOverviewUi.text0bf41704"), runs: t("agentOverviewUi.text71b3f0bb"), costs: t("agentOverviewUi.text628bc3a2"), budgets: t("agentOverviewUi.text95b26f32")})[section]}
               to={agentScopedAuditHref(agent.id, section)}
               className="rounded-lg border border-border px-3 py-2 text-sm font-medium capitalize hover:bg-accent"
             >
-              {section}
+              {({activity: t("agentOverviewUi.text0bf41704"), runs: t("agentOverviewUi.text71b3f0bb"), costs: t("agentOverviewUi.text628bc3a2"), budgets: t("agentOverviewUi.text95b26f32")})[section]}
             </Link>
           ))}
         </div>
@@ -4339,7 +4339,7 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
                 <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
               </span>
-              Live
+              {t("agentOverviewUi.text65c821a5")}
             </span>
           )}
         </div>

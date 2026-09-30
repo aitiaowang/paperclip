@@ -1,3 +1,4 @@
+import { t as translate } from "../i18n";
 import {
   COMPANY_SEARCH_UPDATED_WITHIN_OPTIONS,
   ISSUE_PRIORITIES,
@@ -40,13 +41,13 @@ export interface SearchOperatorSuggestion {
 export const SEARCH_OPERATOR_QUICK_FILTERS = ["assignee:me", "is:open", "updated:>7d"] as const;
 
 export const SEARCH_OPERATOR_SUGGESTIONS: SearchOperatorSuggestion[] = [
-  { token: "status:todo", label: "Open todo tasks", description: "Filter by task status" },
-  { token: "status:blocked", label: "Blocked tasks", description: "Find blocked work" },
-  { token: "assignee:me", label: "Assigned to me", description: "Use your current board user" },
-  { token: "project:\"Paperclip App\"", label: "Project name", description: "Quote multi-word project names" },
-  { token: "label:bug", label: "Label", description: "Filter by issue label" },
-  { token: "priority:high", label: "High priority", description: "Filter by priority" },
-  { token: "updated:>7d", label: "Recently updated", description: "Updated in the last 7 days" },
+  { token: "status:todo", label: "searchUi.operator.todo.label", description: "searchUi.operator.todo.description" },
+  { token: "status:blocked", label: "searchUi.operator.blocked.label", description: "searchUi.operator.blocked.description" },
+  { token: "assignee:me", label: "searchUi.operator.me.label", description: "searchUi.operator.me.description" },
+  { token: "project:\"Paperclip App\"", label: "searchUi.operator.project.label", description: "searchUi.operator.project.description" },
+  { token: "label:bug", label: "searchUi.operator.label.label", description: "searchUi.operator.label.description" },
+  { token: "priority:high", label: "searchUi.operator.priority.label", description: "searchUi.operator.priority.description" },
+  { token: "updated:>7d", label: "searchUi.operator.updated.label", description: "searchUi.operator.updated.description" },
 ];
 
 export interface SearchQueryParserContext {
@@ -126,13 +127,13 @@ function currentTokenBounds(input: string): { start: number; end: number; token:
   return { start, end, token: input.slice(start, end) };
 }
 
-export function searchOperatorSuggestions(input: string, limit = 5): SearchOperatorSuggestion[] {
+export function searchOperatorSuggestions(input: string, limit = 5, t = translate): SearchOperatorSuggestion[] {
   const { token } = currentTokenBounds(input);
   const normalized = token.toLowerCase();
   const candidates = normalized.length > 0
     ? SEARCH_OPERATOR_SUGGESTIONS.filter((suggestion) => suggestion.token.toLowerCase().startsWith(normalized))
     : SEARCH_OPERATOR_SUGGESTIONS;
-  return candidates.slice(0, limit);
+  return candidates.slice(0, limit).map((suggestion) => ({ ...suggestion, label: t(suggestion.label), description: t(suggestion.description) }));
 }
 
 export function applySearchOperatorSuggestion(input: string, token: string): string {

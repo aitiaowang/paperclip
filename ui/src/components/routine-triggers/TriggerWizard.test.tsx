@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { changeLocale } from "@/i18n";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -44,3 +45,30 @@ it("keeps legacy bearer setup instructions accurate", () => {
   expect(instructions).toContain("Authorization: Bearer secret");
   expect(instructions).not.toContain("HMAC-SHA256");
 });
+
+it("keeps schedule draft values and API enums while switching language", async () => {
+  const onFinish = vi.fn();
+  await act(async () => root.render(<RoutineTriggerWizard initialDraft={{ ...defaultTriggerDraft, kind: "schedule", step: 1, availableStep: 1, frequency: "weekly", weekday: "Thursday", time: "14:35", timezone: "Asia/Shanghai" }} routineTitle="User routine" routineId="routine-1" onSaveExit={() => {}} onFinish={onFinish} />));
+  const time = container.querySelector<HTMLInputElement>('#run-time')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(time, "16:25");
+    time.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await act(async () => changeLocale("zh-CN"));
+  expect(container.textContent).toContain("设置定时计划");
+  expect(container.querySelector<HTMLSelectElement>('#repeat')?.value).toBe("weekly");
+  expect(container.querySelector<HTMLSelectElement>('#run-day')?.value).toBe("Thursday");
+  expect(container.querySelector<HTMLSelectElement>('#timezone')?.value).toBe("Asia/Shanghai");
+  expect(time.value).toBe("16:25");
+  const review = [...container.querySelectorAll("button")].find(button => button.textContent === "确认计划")!;
+  await act(async () => review.click());
+  expect(container.textContent).toContain("每周四 16:25");
+  await act(async () => changeLocale("en"));
+  expect(container.textContent).toContain("Every Thursday at 16:25");
+  const finish = [...container.querySelectorAll("button")].find(button => button.textContent === "Add schedule")!;
+  await act(async () => finish.click());
+  expect(onFinish).toHaveBeenCalledWith(expect.objectContaining({ frequency: "weekly", weekday: "Thursday", time: "16:25", timezone: "Asia/Shanghai" }));
+});
+
+beforeEach(() => { changeLocale("en"); });
+afterEach(() => { changeLocale("zh-CN"); });

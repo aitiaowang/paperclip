@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "@/i18n";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import {
   buildReusableExecutionWorkspaceOptionGroups,
@@ -28,7 +29,7 @@ export function ReusableExecutionWorkspaceSelect<TWorkspace extends ReusableExec
   value,
   workspaces,
   onValueChange,
-  placeholder = "Choose an existing workspace",
+  placeholder,
   loading = false,
   error = false,
   disabled = false,
@@ -36,17 +37,21 @@ export function ReusableExecutionWorkspaceSelect<TWorkspace extends ReusableExec
   triggerClassName,
   disablePortal,
 }: ReusableExecutionWorkspaceSelectProps<TWorkspace>) {
-  const groups = useMemo(() => buildReusableExecutionWorkspaceOptionGroups(workspaces), [workspaces]);
+  const { t } = useTranslation();
+  const groups = useMemo(() => buildReusableExecutionWorkspaceOptionGroups(workspaces).map((group) => ({
+    ...group,
+    label: t(group.id === "recent" ? "selectorExtra.recentWorkspaces" : "selectorExtra.allWorkspaces"),
+  })), [workspaces, t]);
 
   return (
     <SearchableSelect<string, ReusableWorkspaceOption<TWorkspace>>
       value={value}
       groups={groups}
       onValueChange={onValueChange}
-      placeholder={placeholder}
-      searchPlaceholder="Search workspaces..."
-      emptyMessage={error ? "Workspaces failed to load." : "No matching workspaces."}
-      loadingMessage="Loading workspaces..."
+      placeholder={placeholder ?? t("selectorExtra.chooseWorkspace")}
+      searchPlaceholder={t("selectorExtra.searchWorkspaces")}
+      emptyMessage={t(error ? "selectorExtra.workspacesFailed" : "selectorExtra.noWorkspaces")}
+      loadingMessage={t("selectorExtra.loadingWorkspaces")}
       loading={loading}
       disabled={disabled}
       className={className}

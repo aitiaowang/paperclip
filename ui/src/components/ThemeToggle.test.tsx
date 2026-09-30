@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { i18n } from "../i18n";
+
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -27,7 +29,8 @@ async function flushReact() {
 describe("ThemeToggle", () => {
   let container: HTMLDivElement;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     mockTheme.value = "dark";

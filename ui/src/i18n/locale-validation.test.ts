@@ -6,16 +6,21 @@ import { validateLocaleMessages } from "./locale-validation";
 
 describe("locale validation", () => {
   it("resolves English messages with key and default fallbacks", () => {
-    expect(t("app.noCompanies.title")).toBe(en.app.noCompanies.title);
+    expect(t("app.noCompanies.title", { lng: "en" })).toBe(en.app.noCompanies.title);
     expect(t("app.missing", { defaultValue: "Fallback" })).toBe("Fallback");
     expect(t("app.missing")).toBe("app.missing");
   });
 
-  it("accepts registered locale files", () => {
+  it("requires complete and matching English and Chinese resources", () => {
     expect(Object.keys(localeMessages)).toContain("en");
-    for (const [locale, messages] of Object.entries(localeMessages)) {
-      expect(validateLocaleMessages(messages), locale).toEqual([]);
+    for (const locale of ["en", "zh-CN"]) {
+      expect(validateLocaleMessages(localeMessages[locale]), locale).toEqual([]);
     }
+  });
+
+  it("falls back to Chinese for untranslated entries in partial locale packs", () => {
+    expect(t("newIssue.createTask", { lng: "fr" })).toBe("创建任务");
+    expect(t("newIssue.createTask", { lng: "en" })).toBe("Create Task");
   });
 
   it("rejects missing and extra nested keys", () => {

@@ -24,15 +24,16 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ArrowUpDown, Check, Hexagon, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { useTranslation } from "../i18n";
 
 type ProjectSortField = "name" | "updated" | "created" | "targetDate";
 type ProjectSortDir = "asc" | "desc";
 
 const PROJECT_SORT_OPTIONS: Array<{ field: ProjectSortField; label: string }> = [
-  { field: "name", label: "Name" },
-  { field: "updated", label: "Updated" },
-  { field: "created", label: "Created" },
-  { field: "targetDate", label: "Target date" },
+  { field: "name", label: "projectsUi.name" },
+  { field: "updated", label: "projectsUi.updated" },
+  { field: "created", label: "projectsUi.created" },
+  { field: "targetDate", label: "projectsUi.targetDate" },
 ];
 
 function compareProjectNames(left: Project, right: Project) {
@@ -77,6 +78,7 @@ function sortProjects(projects: Project[], sortField: ProjectSortField, sortDir:
 }
 
 export function Projects() {
+  const { t } = useTranslation();
   const { selectedCompanyId } = useCompany();
   const { openNewProject } = useDialogActions();
   const { setBreadcrumbs } = useBreadcrumbs();
@@ -84,8 +86,8 @@ export function Projects() {
   const [sortDir, setSortDir] = useState<ProjectSortDir>("asc");
 
   useEffect(() => {
-    setBreadcrumbs([{ label: "Projects" }]);
-  }, [setBreadcrumbs]);
+    setBreadcrumbs([{ label: t("nav.projects") }]);
+  }, [setBreadcrumbs, t]);
 
   const { data: allProjects, isLoading, error } = useQuery({
     queryKey: queryKeys.projects.list(selectedCompanyId!),
@@ -116,10 +118,10 @@ export function Projects() {
 
     return groups;
   }, [membershipsQuery.data, sortedProjects]);
-  const sortLabel = PROJECT_SORT_OPTIONS.find((option) => option.field === sortField)?.label ?? "Name";
+  const sortLabel = t(PROJECT_SORT_OPTIONS.find((option) => option.field === sortField)?.label ?? "projectsUi.name");
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={Hexagon} message="Select an organization to view projects." />;
+    return <EmptyState icon={Hexagon} message={t("projectsUi.selectCompany")} />;
   }
 
   if (isLoading) {
@@ -131,9 +133,9 @@ export function Projects() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-fit text-xs" title="Sort">
+            <Button variant="ghost" size="sm" className="w-fit text-xs" title={t("projectsUi.sort")}>
               <ArrowUpDown className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:mr-1" />
-              <span>Sort: {sortLabel}</span>
+              <span>{t("projectsUi.sortBy", { label: sortLabel })}</span>
             </Button>
           </PopoverTrigger>
           <PopoverContent align="start" className="w-44 p-0">
@@ -156,11 +158,11 @@ export function Projects() {
                     setSortDir(option.field === "name" || option.field === "targetDate" ? "asc" : "desc");
                   }}
                 >
-                  <span>{option.label}</span>
+                  <span>{t(option.label)}</span>
                   {sortField === option.field ? (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Check className="h-3 w-3" />
-                      {sortDir === "asc" ? "Asc" : "Desc"}
+                      {t(sortDir === "asc" ? "projectsUi.asc" : "projectsUi.desc")}
                     </span>
                   ) : null}
                 </button>
@@ -170,7 +172,7 @@ export function Projects() {
         </Popover>
         <Button size="sm" variant="outline" onClick={openNewProject}>
           <Plus className="h-4 w-4 mr-1" />
-          Add Project
+          {t("projectsUi.add")}
         </Button>
       </div>
 
@@ -179,8 +181,8 @@ export function Projects() {
       {!isLoading && projects.length === 0 && (
         <EmptyState
           icon={Hexagon}
-          message="No projects yet."
-          action="Add Project"
+          message={t("projectsUi.empty")}
+          action={t("projectsUi.add")}
           onAction={openNewProject}
         />
       )}
@@ -188,17 +190,17 @@ export function Projects() {
       {projects.length > 0 && (
         <div className="space-y-6">
           {([
-            ["My Projects", groupedProjects.mine],
-            ["Other Projects", groupedProjects.other],
+            ["projectsUi.mine", groupedProjects.mine],
+            ["projectsUi.other", groupedProjects.other],
           ] as const).map(([label, sectionProjects]) => {
             if (sectionProjects.length === 0) return null;
 
             return (
               <section key={label} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-medium">{label}</h2>
+                  <h2 className="text-sm font-medium">{t(label)}</h2>
                   <span className="text-xs text-muted-foreground">
-                    {sectionProjects.length} project{sectionProjects.length === 1 ? "" : "s"}
+                    {t("projectsUi.count", { count: sectionProjects.length })}
                   </span>
                 </div>
                 <Card className="block py-0 overflow-hidden divide-y divide-border">
@@ -223,9 +225,9 @@ export function Projects() {
                           <div className="flex items-center gap-3">
                             <span
                               className="hidden text-xs text-muted-foreground tabular-nums sm:inline"
-                              title={`${formatNumber(project.taskCount ?? 0)} task${(project.taskCount ?? 0) === 1 ? "" : "s"}`}
+                              title={t("projectsUi.tasks", { count: project.taskCount ?? 0, number: formatNumber(project.taskCount ?? 0) })}
                             >
-                              {formatNumber(project.taskCount ?? 0)} task{(project.taskCount ?? 0) === 1 ? "" : "s"}
+                              {t("projectsUi.tasks", { count: project.taskCount ?? 0, number: formatNumber(project.taskCount ?? 0) })}
                             </span>
                             {project.budget && (
                               <span className="hidden text-xs text-muted-foreground tabular-nums sm:inline">

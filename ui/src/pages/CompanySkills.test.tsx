@@ -3,7 +3,8 @@
 import { act as reactAct, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { CatalogSkill, CompanySkillDetail, CompanySkillListItem, CompanySkillVersion, FolderListResult } from "@paperclipai/shared";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { changeLocale } from "../i18n";
 import {
   DiscoveryGrid,
   InstallPreviewDialog,
@@ -107,6 +108,8 @@ async function act(callback: () => void | Promise<void>) {
     await callback();
   });
 }
+
+beforeEach(() => changeLocale("en"));
 
 afterEach(() => {
   root?.unmount();
@@ -373,6 +376,17 @@ describe("getSkillVersionDiffSelection", () => {
 });
 
 describe("DiscoveryGrid IA presentation", () => {
+  it("switches discovery labels in both directions while retaining the search draft", async () => {
+    const node = await renderDiscoveryGrid({ search: "my-skill draft", sort: "stars" });
+    expect(node.textContent).toContain("Installed skills");
+    await act(() => changeLocale("zh-CN"));
+    expect(node.textContent).toContain("已安装技能");
+    expect(node.textContent).toContain("星标最多");
+    expect(node.querySelector<HTMLInputElement>('input[aria-label="搜索已安装技能"]')?.value).toBe("my-skill draft");
+    await act(() => changeLocale("en"));
+    expect(node.querySelector<HTMLInputElement>('input[aria-label="Search installed skills"]')?.value).toBe("my-skill draft");
+    expect(node.textContent).toContain("Most stars");
+  });
   it("makes the search scope explicit for Installed and Discover", async () => {
     let node = await renderDiscoveryGrid({ tab: "installed" });
     expect(node.querySelector('input[aria-label="Search installed skills"]')).not.toBeNull();
@@ -789,6 +803,24 @@ describe("SkillDetailPage versions tab", () => {
 });
 
 describe("SkillDetailPage settings", () => {
+  it("switches open settings in both directions while preserving drafts and API sharing values", async () => {
+    const v1 = makeVersion(1, "# Original instruction\n\nDo not translate this user content.");
+    const onUpdateSettings = vi.fn();
+    const node = await renderSkillDetail([v1], { activeTab: "overview", onUpdateSettings });
+    await click(buttonsNamed(node, "Settings")[0] as HTMLButtonElement);
+    const dialog = node.querySelector('[role="dialog"]')!;
+    await inputValue(dialog.querySelector("input")!, "My Custom Category, review");
+    await selectValue(dialog.querySelector("select")!, "private");
+    await act(() => changeLocale("zh-CN"));
+    expect(dialog.textContent).toContain("技能设置");
+    expect(dialog.querySelector("input")?.value).toBe("My Custom Category, review");
+    expect(dialog.querySelector("select")?.value).toBe("private");
+    await act(() => changeLocale("en"));
+    expect(dialog.textContent).toContain("Skill settings");
+    await act(() => changeLocale("zh-CN"));
+    await click(buttonsNamed(dialog, "保存设置")[0] as HTMLButtonElement);
+    expect(onUpdateSettings).toHaveBeenCalledWith({ sharingScope: "private", categories: ["My Custom Category", "review"] });
+  });
   it("humanizes the server folder path on a cold detail render", async () => {
     const v1 = makeVersion(1, "# Demo Skill");
     const node = await renderSkillDetail([v1], {

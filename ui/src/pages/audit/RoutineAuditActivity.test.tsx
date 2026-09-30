@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
-import { flushSync } from "react-dom";
+import { changeLocale } from "@/i18n";
+
+import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -36,6 +38,7 @@ describe("RoutineAuditActivity", () => {
   let root: ReturnType<typeof createRoot>;
 
   beforeEach(() => {
+    changeLocale("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     getRoutineMock.mockResolvedValue({ triggers: [{ id: "trigger-1" }, { id: "trigger-2" }] });
@@ -51,22 +54,24 @@ describe("RoutineAuditActivity", () => {
   });
 
   afterEach(() => {
-    flushSync(() => root?.unmount());
+    act(() => root?.unmount());
     container.remove();
     vi.clearAllMocks();
+    changeLocale("zh-CN");
   });
 
   it("loads activity through the routine endpoint with its trigger and run scope", async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     root = createRoot(container);
-    flushSync(() => {
+    await act(async () => {
       root.render(
         <QueryClientProvider client={queryClient}>
           <RoutineAuditActivity companyId="company-1" routineId="routine-1" />
         </QueryClientProvider>,
       );
+      await flushReact();
     });
-    await flushReact();
+    await act(async () => { await flushReact(); });
 
     expect(getRoutineMock).toHaveBeenCalledWith("routine-1");
     expect(listRoutineRunsMock).toHaveBeenCalledWith("routine-1", 200);

@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 
 import { flushSync } from "react-dom";
+import { changeLocale } from "../../i18n";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+beforeEach(() => changeLocale("en"));
 import type { FolderListResult } from "@paperclipai/shared";
 import {
   AllUnfiledBanner,

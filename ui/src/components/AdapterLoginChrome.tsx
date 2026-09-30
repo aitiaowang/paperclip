@@ -1,3 +1,4 @@
+import { useTranslation } from "@/i18n";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Copy, Check, Loader2 } from "lucide-react";
@@ -89,12 +90,13 @@ export function OnboardingLoginCard({
   loading?: boolean;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   if (loading) {
     return (
       <div
         className="flex min-h-(--sz-108px) items-center justify-center rounded-xl bg-muted/40"
         role="status"
-        aria-label="Preparing the sign-in"
+        aria-label={t("newAgentConnection.preparingSignIn")}
       >
         <Loader2 className="size-4 animate-spin text-muted-foreground" />
       </div>
@@ -212,7 +214,7 @@ function LoginCardCopyButton({
  *
  * The claim is made only when the write actually succeeded. A clipboard write
  * needs transient user activation, and this one happens a beat after the press
- * that started the sign-in, so a browser may well refuse it; "Copied!" over an
+ * that started the sign-in, so a browser may well refuse it; t("newAgentConnection.copied") over an
  * empty clipboard would send someone to paste nothing. The button beside it is
  * the path that always works, and is why the failure is quiet rather than an
  * error.
@@ -224,6 +226,7 @@ export function OnboardingLoginCodeRow({
   code: string;
   autoCopy?: boolean;
 }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoCopiedRef = useRef(false);
@@ -239,7 +242,7 @@ export function OnboardingLoginCodeRow({
     // An empty code is not a code. The row renders before the server's one-time
     // prompt has a value on some paths, and the previous version latched on
     // that first run — so the copy that mattered never ran, and the card said
-    // "Copied!" over an empty clipboard.
+    // t("newAgentConnection.copied") over an empty clipboard.
     if (!autoCopy || autoCopiedRef.current || !code) return;
 
     let cancelled = false;
@@ -304,13 +307,13 @@ export function OnboardingLoginCodeRow({
             animate={{ opacity: 1, y: 0, transition: COPIED_REVEAL }}
             exit={{ opacity: 0, transition: COPIED_REVEAL }}
           >
-            Copied!
+            {t("newAgentConnection.copied")}
           </motion.span>
         )}
       </AnimatePresence>
       <LoginCardCopyButton
         value={code}
-        label="Copy the code"
+        label={t("newAgentConnection.copyCode")}
         onCopied={() => {
           // No wait here. A press is a direct action, and delaying its
           // acknowledgement would read as the button having missed.
@@ -471,25 +474,26 @@ export function LocalProviderLoginInstructions({ adapterType, login }: {
   adapterType: string;
   login?: { isolated?: boolean; command?: string; preparing: boolean; status?: "ready" | "sign_in_required" | "expired" | null; error: string | null; retry: () => void };
 }) {
+  const { t } = useTranslation();
   const [showCommand, setShowCommand] = useState(false);
   const provider = adapterType === "claude_local" ? "Claude Code" : adapterType === "grok_local" ? "Grok CLI" : "Codex CLI";
   const isolated = login?.isolated ?? (adapterType === "codex_local" || adapterType === "grok_local");
   const command = isolated ? login?.command : "claude auth login";
-  if (login?.preparing) return <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" />Checking local {provider} sign-in…</p>;
+  if (login?.preparing) return <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" />{t("newAgentConnection.checkingLocal", { provider })}</p>;
   const ready = login?.status === "ready";
   return <div className="min-w-0 max-w-full space-y-3 text-sm text-muted-foreground">
     {ready ? <>
-      <p role="status" className="flex items-center gap-2 text-foreground"><Check className="size-4 shrink-0 text-(--status-task-icon-done)" />{provider} is signed in. Click Connect to use this account.</p>
-      {!showCommand && <button type="button" className="underline underline-offset-4" onClick={() => setShowCommand(true)}>Use a different account</button>}
-    </> : <p>{isolated ? `Sign in to ${provider} for this connection on the machine running Paperclip. Your existing terminal login stays separate.` : `Connect uses your local ${provider} account on the machine running Paperclip.`}</p>}
+      <p role="status" className="flex items-center gap-2 text-foreground"><Check className="size-4 shrink-0 text-(--status-task-icon-done)" />{t("newAgentConnection.signedIn", { provider })}</p>
+      {!showCommand && <button type="button" className="underline underline-offset-4" onClick={() => setShowCommand(true)}>{t("newAgentConnection.differentAccount")}</button>}
+    </> : <p>{isolated ? t("newAgentConnection.isolatedSignIn", { provider }) : t("newAgentConnection.hostSignIn", { provider })}</p>}
     {(!ready || showCommand) && !login?.error && <>
-      <p>Run this in a terminal on that machine and finish signing in in your browser. We’ll check automatically when you return.</p>
+      <p>{t("newAgentConnection.terminalHelp")}</p>
       {command && <div className="flex min-w-0 max-w-full items-start gap-2 rounded-md border bg-muted p-3 text-foreground">
         <pre className="min-w-0 flex-1 whitespace-pre-wrap break-all font-mono text-xs"><code>{command}</code></pre>
-        <LoginCardCopyButton value={command} label="Copy sign-in command" />
+        <LoginCardCopyButton value={command} label={t("newAgentConnection.copyCommand")} />
       </div>}
     </>}
     {login?.error && <p role="alert">{login.error}</p>}
-    {login && !login.preparing && (isolated || login.error) && <button type="button" className="underline underline-offset-4" onClick={login.retry}>{isolated ? "Start sign-in again" : "Check again"}</button>}
+    {login && !login.preparing && (isolated || login.error) && <button type="button" className="underline underline-offset-4" onClick={login.retry}>{isolated ? t("newAgentConnection.restartSignIn") : t("newAgentConnection.checkAgain")}</button>}
   </div>;
 }

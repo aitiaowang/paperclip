@@ -1,7 +1,8 @@
+import { changeLocale } from "../i18n";
 // @vitest-environment node
 
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { AgentStatusBadge, IssueStatusBadge, StatusBadge } from "./StatusBadge";
 import { agentStatusVar, taskStatusVar } from "../lib/status-colors";
 
@@ -9,6 +10,8 @@ import { agentStatusVar, taskStatusVar } from "../lib/status-colors";
  * Issue/task status chips carry the unified glyph and are recolored from the
  * `--status-task-*` base hue via the `.status-chip` color-mix helper.
  */
+beforeEach(() => changeLocale("en"));
+
 describe("IssueStatusBadge", () => {
   it("wires each issue status to its --status-task-* base hue, with a glyph", () => {
     for (const [status, cssVar] of Object.entries(taskStatusVar)) {

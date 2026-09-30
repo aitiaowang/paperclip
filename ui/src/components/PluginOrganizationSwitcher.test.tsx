@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { changeLocale } from "../i18n";
 import { useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
@@ -21,6 +22,7 @@ let root: Root | undefined;
 let container: HTMLDivElement;
 const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 function render() {
+  changeLocale("en");
   if (!root) { container = document.createElement("div"); document.body.append(container); root = createRoot(container); }
   flushSync(() => root!.render(<QueryClientProvider client={client}><PluginOrganizationSwitcher><button>Built-in organizations</button></PluginOrganizationSwitcher></QueryClientProvider>));
 }

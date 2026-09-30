@@ -1,3 +1,4 @@
+import { useTranslation } from "@/i18n";
 import { motion } from "motion/react";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 
@@ -8,7 +9,7 @@ import { CTA_LABEL_IN, CTA_WIDTH } from "./onboarding-motion";
 export type FooterPrimaryIcon = "arrow" | "spinner" | "none";
 
 /**
- * Shared footer for the arc's step cards: a ghost pill "Back" and a primary
+ * Shared footer for the arc's step cards: a ghost pill t("newAgentConnection.back") and a primary
  * pill CTA that shows a spinner and a loading label while its action runs.
  *
  * `onBack` is optional — a run that entered on this step has nowhere behind it
@@ -45,6 +46,7 @@ export function FooterNav({
   primaryIcon?: FooterPrimaryIcon;
   onPrimary: () => void;
 }) {
+  const { t } = useTranslation();
   const label = loading && loadingLabel ? loadingLabel : primaryLabel;
   const icon: FooterPrimaryIcon = primaryIcon ?? (loading ? "spinner" : "arrow");
 
@@ -66,7 +68,7 @@ export function FooterNav({
           disabled={loading}
         >
           <ArrowLeft className="mr-1 size-3.5" />
-          Back
+          {t("newAgentConnection.back")}
         </Button>
       ) : (
         <span />

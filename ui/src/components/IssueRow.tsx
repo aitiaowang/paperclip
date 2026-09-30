@@ -1,3 +1,5 @@
+import { useTranslation } from "@/i18n";
+import type { TFunction } from "i18next";
 import { requiresExecutionReconciliation } from "@paperclipai/shared";
 import type { ReactNode } from "react";
 import type { ExternalObjectSummary, Issue, IssueRecoveryAction } from "@paperclipai/shared";
@@ -12,10 +14,9 @@ import { cn } from "../lib/utils";
 import {
   deriveActiveRecoveryDisplayState,
   RECOVERY_CHIP_DEFAULT_TONE,
-  recoveryChipLabel,
 } from "../lib/recovery-display";
 import {
-  formatRecoveryLineageSummary,
+  formatRecoveryRetryOffset,
   readRecoveryRetryLineage,
   type RecoveryLivenessContext,
 } from "../lib/recovery-lineage";
@@ -89,6 +90,7 @@ export function InboxArchiveButton({
   disabled?: boolean;
   compact?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -109,10 +111,10 @@ export function InboxArchiveButton({
         "inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none disabled:opacity-30",
         compact ? "h-5 py-0" : "py-1",
       )}
-      aria-label="Archive"
+      aria-label={t("inboxUi.archive")}
     >
       <Archive className="h-3.5 w-3.5" />
-      Archive
+      {t("inboxUi.archive")}
     </button>
   );
 }
@@ -151,6 +153,7 @@ export function IssueRow({
   chevronInGuide = false,
   showDivider = false,
 }: IssueRowProps) {
+  const { t } = useTranslation();
   const issuePathId = issue.identifier ?? issue.id;
   const identifier = issue.identifier ?? issue.id.slice(0, 8);
   // A row participates in the unread system whenever `unreadState` is supplied.
@@ -178,7 +181,7 @@ export function IssueRow({
         "inline-flex h-4 w-4 items-center justify-center rounded-full transition-colors",
         selected ? "hover:bg-muted/80" : "hover:bg-blue-500/20",
       )}
-      aria-label="Mark as read"
+      aria-label={t("inboxUi.markRead")}
     >
       <span
         className={cn(
@@ -201,16 +204,16 @@ export function IssueRow({
   // The row already carries the issue's own scheduled retry, so the chip can tell a retry the
   // scheduler is actually running from one whose due time simply passed.
   const recoveryIndicator = recoveryAction && !requiresExecutionReconciliation(recoveryAction.cause)
-    ? renderRecoveryChip(recoveryAction, selected, { scheduledRetry: issue.scheduledRetry ?? null })
+    ? renderRecoveryChip(recoveryAction, selected, { scheduledRetry: issue.scheduledRetry ?? null }, t)
     : null;
   const parkedBlockerIndicator = hasAssignedBacklogBlocker(issue.blockedBy) ? (
     <Badge variant="outline"
       data-testid="issue-row-parked-blocker"
       className="[&>svg]:size-2.5 ml-1.5 gap-0.5 border-amber-500/60 bg-amber-500/15 text-(length:--text-nano) text-amber-700 dark:text-amber-300"
-      title="Blocked by parked work — at least one assigned blocker is in backlog and will not wake its assignee."
+      title={t("inboxUi.parkedBlockerHint")}
     >
       <Flag className="h-2.5 w-2.5" aria-hidden />
-      Blocked by parked work
+      {t("inboxUi.parkedBlocker")}
     </Badge>
   ) : null;
 
@@ -241,7 +244,7 @@ export function IssueRow({
           onClickCapture={() => rememberIssueDetailLocationState(issuePathId, detailState)}
           className="absolute inset-0 rounded-lg no-underline text-inherit focus-visible:z-10 focus-visible:outline-none focus-visible:ring-(length:--rad-3) focus-visible:ring-ring"
         >
-          <span className="sr-only">Open {identifier}: {issue.title}</span>
+          <span className="sr-only">{t("inboxUi.openIssue", { identifier, title: issue.title })}</span>
         </Link>
 
         {showUnreadSlot ? (
@@ -382,7 +385,7 @@ export function IssueRow({
           "absolute inset-0 rounded-lg no-underline text-inherit focus-visible:z-10 focus-visible:outline-none focus-visible:ring-(length:--rad-3) focus-visible:ring-ring",
         )}
       >
-        <span className="sr-only">Open {identifier}: {issue.title}</span>
+        <span className="sr-only">{t("inboxUi.openIssue", { identifier, title: issue.title })}</span>
       </Link>
       <span className="flex shrink-0 items-center gap-1 pt-px sm:hidden">
         {mobileLeading ?? <StatusIcon status={issue.status} externalConversationState={issue.externalConversationState} blockerAttention={issue.blockerAttention} size="md" className={selectedStatusClass} />}
@@ -507,14 +510,36 @@ function renderRecoveryChip(
   action: IssueRecoveryAction,
   selected: boolean,
   liveness: RecoveryLivenessContext,
+  t: TFunction,
 ): ReactNode {
   const state = deriveActiveRecoveryDisplayState(action, liveness);
   if (!state) return null;
   const tone = RECOVERY_CHIP_DEFAULT_TONE[state];
   const Icon = tone.icon;
   const lineage = readRecoveryRetryLineage(action, liveness);
-  const label = recoveryChipLabel(state, action.kind, lineage);
-  const detail = lineage ? formatRecoveryLineageSummary(lineage) : null;
+  const label = action.kind === "workspace_validation" && state === "needed"
+    ? t("inboxUi.recovery.workspace")
+    : state === "in_progress" && lineage?.maxAttempts != null && lineage.attempt > 0
+      ? t("inboxUi.recovery.progress", { attempt: Math.min(lineage.attempt, lineage.maxAttempts), max: lineage.maxAttempts })
+      : t(`inboxUi.recovery.${state}`);
+  const parts: string[] = [];
+  if (lineage) {
+    if (lineage.maxAttempts !== null) parts.push(t("inboxUi.recovery.attempt", { attempt: Math.min(lineage.attempt, lineage.maxAttempts), max: lineage.maxAttempts }));
+    const rawOffset = formatRecoveryRetryOffset(lineage);
+    const duration = rawOffset?.replace(/^(?:in )|(?: ago)$/g, "")
+      .replace(/(\d+)d/g, (_, count) => t("inboxUi.recovery.days", { count: Number(count) }))
+      .replace(/(\d+)h/g, (_, count) => t("inboxUi.recovery.hours", { count: Number(count) }))
+      .replace(/(\d+)m/g, (_, count) => t("inboxUi.recovery.minutes", { count: Number(count) }))
+      .replace(/(\d+)s/g, (_, count) => t("inboxUi.recovery.seconds", { count: Number(count) }));
+    const offset = rawOffset === "now" ? t("inboxUi.recovery.now")
+      : rawOffset?.startsWith("in ") ? t("inboxUi.recovery.future", { duration })
+        : rawOffset?.endsWith(" ago") ? t("inboxUi.recovery.past", { duration }) : duration;
+    if (lineage.liveRunId) parts.push(t("inboxUi.recovery.running"));
+    else if (lineage.retryExpired) parts.push(offset ? t("inboxUi.recovery.missedAt", { offset }) : t("inboxUi.recovery.missed"));
+    else if (offset) parts.push(rawOffset === "now" ? t("inboxUi.recovery.nextNow") : t("inboxUi.recovery.next", { offset }));
+    else if (lineage.exhausted) parts.push(t("inboxUi.recovery.exhausted"));
+  }
+  const detail = parts.join(" · ") || null;
   return (
     <Badge variant="outline"
       data-testid="issue-row-recovery-indicator"
@@ -529,8 +554,8 @@ function renderRecoveryChip(
         selected ? "!border-muted-foreground !text-muted-foreground" : null,
       )}
       title={detail
-        ? `${label} — ${detail}. Open the source task to act.`
-        : `${label} — open the source task to act.`}
+        ? t("inboxUi.recovery.titleDetail", { label, detail })
+        : t("inboxUi.recovery.title", { label })}
     >
       <Icon className="h-2.5 w-2.5" aria-hidden />
       {label}

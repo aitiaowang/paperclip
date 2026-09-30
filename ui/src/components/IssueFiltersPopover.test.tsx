@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { changeLocale } from "../i18n";
 import { act } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
@@ -212,6 +213,13 @@ describe("IssueFiltersPopover", () => {
     expect(categoryOptions?.querySelector('button[aria-pressed="true"]')?.textContent).toContain("Approvals");
     expect(approvalOptions?.querySelector('button[aria-pressed="true"]')?.textContent).toContain("Needs action");
 
+    act(() => changeLocale("zh-CN"));
+    expect(categoryOptions?.querySelector('button[aria-pressed="true"]')?.textContent).toContain("审批");
+    expect(approvalOptions?.querySelector('button[aria-pressed="true"]')?.textContent).toContain("待处理");
+    expect(onCategoryChange).not.toHaveBeenCalled();
+    expect(onApprovalStatusChange).not.toHaveBeenCalled();
+    act(() => changeLocale("en"));
+
     const allCategoriesButton = Array.from(categoryOptions?.querySelectorAll("button") ?? [])
       .find((button) => button.textContent?.includes("All categories"));
     const resolvedButton = Array.from(approvalOptions?.querySelectorAll("button") ?? [])
@@ -230,3 +238,6 @@ describe("IssueFiltersPopover", () => {
     act(() => root.unmount());
   });
 });
+
+beforeEach(() => { changeLocale("en"); });
+afterEach(() => { changeLocale("zh-CN"); });

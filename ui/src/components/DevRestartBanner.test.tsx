@@ -1,3 +1,4 @@
+import { changeLocale } from "../i18n";
 // @vitest-environment jsdom
 
 import { act } from "react";
@@ -34,6 +35,7 @@ const devServer = {
 };
 
 beforeEach(() => {
+  changeLocale("en");
   vi.spyOn(window, "confirm").mockReturnValue(true);
   vi.spyOn(window, "alert").mockImplementation(() => undefined);
   mockHealthApi.requestDevServerRestart.mockResolvedValue(undefined);
@@ -60,6 +62,16 @@ function render() {
 }
 
 describe("DevRestartBanner", () => {
+  it("switches its warning text without submitting a restart", () => {
+    const node = render();
+    act(() => changeLocale("zh-CN"));
+    expect(node.textContent).toContain("需要重启");
+    expect(node.textContent).toContain("等待1 个正在运行的任务结束");
+    expect(node.textContent).toContain("立即重启");
+    expect(mockHealthApi.requestDevServerRestart).not.toHaveBeenCalled();
+    act(() => changeLocale("en"));
+    expect(node.textContent).toContain("Waiting for 1 live run to finish");
+  });
   it("confirms and requests an immediate restart while waiting for live runs", async () => {
     const node = render();
     const button = [...node.querySelectorAll("button")]

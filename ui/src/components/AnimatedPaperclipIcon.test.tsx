@@ -1,8 +1,11 @@
 // @vitest-environment node
 
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { PaperclipLoading } from "./AnimatedPaperclipIcon";
+import { changeLocale } from "../i18n";
+
+beforeEach(() => changeLocale("en"));
 
 describe("PaperclipLoading", () => {
   it("renders an accessible full-page loading state", () => {

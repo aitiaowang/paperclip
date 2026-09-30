@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 
-import type { AnchorHTMLAttributes, ReactNode } from "react";
+import { act as reactAct, type AnchorHTMLAttributes, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { FolderListResult, Issue, RoutineListItem } from "@paperclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Routines, buildRoutineGroups, buildRoutineSections, sortRoutines } from "./Routines";
+import { Routines as ProductionRoutines } from "./Routines.production";
+
+import { changeLocale } from "../i18n";
 
 let currentSearch = "";
 
@@ -398,11 +401,41 @@ describe("Routines page", () => {
     issuesListRenderMock.mockClear();
     inlineEntitySelectorRenderMock.mockClear();
     localStorage.clear();
+    changeLocale("en");
   });
 
   afterEach(() => {
     container.remove();
     document.body.innerHTML = "";
+  });
+
+  it.each([Routines, ProductionRoutines])("switches the empty page and open composer without losing the draft (%#)", async (Page) => {
+    routinesListMock.mockResolvedValue([]);
+    issuesListMock.mockResolvedValue([]);
+    const root = createRoot(container);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    try {
+      await reactAct(async () => { root.render(<QueryClientProvider client={queryClient}><Page /></QueryClientProvider>); await flush(); });
+      for (let i = 0; i < 5; i++) await reactAct(async () => { await flush(); });
+      await reactAct(async () => { changeLocale("zh-CN"); await flush(); });
+      expect(container.textContent).toContain("创建定时任务");
+      expect(container.textContent).not.toContain("No active routines.");
+      const create = Array.from(container.querySelectorAll("button")).find(b => b.textContent?.includes("创建定时任务"));
+      await reactAct(async () => { create?.click(); await flush(); });
+      const title = document.querySelector<HTMLTextAreaElement>('textarea[placeholder="定时任务标题"]')!;
+      expect(title).not.toBeNull();
+      await reactAct(async () => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(title, "我的报告任务");
+        title.dispatchEvent(new Event("input", { bubbles: true }));
+        await flush();
+      });
+      await reactAct(async () => { changeLocale("en"); await flush(); });
+      expect(document.querySelector<HTMLTextAreaElement>('textarea[placeholder="Routine title"]')?.value).toBe("我的报告任务");
+      expect(document.body.textContent).toContain("Advanced delivery settings");
+      await reactAct(async () => { changeLocale("zh-CN"); await flush(); });
+      expect(document.querySelector<HTMLTextAreaElement>('textarea[placeholder="定时任务标题"]')?.value).toBe("我的报告任务");
+      expect(document.body.textContent).toContain("高级执行设置");
+    } finally { await reactAct(() => root.unmount()); changeLocale("en"); }
   });
 
   it("groups routines by project using project names for the section labels", () => {

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { changeLocale } from "@/i18n";
 import { useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
@@ -120,6 +121,14 @@ describe("ScheduleEditor", () => {
     expect(onChange).not.toHaveBeenCalledWith("0 8-18/2 *");
     expect(onValidityChange).toHaveBeenLastCalledWith(false);
 
+    const callsBeforeLocaleChange = onChange.mock.calls.length;
+    act(() => changeLocale("zh-CN"));
+    expect(container.textContent).toContain("必须恰好包含 5 个字段");
+    expect(container.querySelector<HTMLInputElement>('input[aria-label="cron 表达式"]')?.value).toBe("0 8-18/2 *");
+    expect(onChange).toHaveBeenCalledTimes(callsBeforeLocaleChange);
+    act(() => changeLocale("en"));
+    expect(cronInput()?.value).toBe("0 8-18/2 *");
+
     act(() => {
       typeCron(cronInput()!, "0 8-18/2 * * 1-5");
     });
@@ -131,3 +140,6 @@ describe("ScheduleEditor", () => {
     act(() => root.unmount());
   });
 });
+
+beforeEach(() => { changeLocale("en"); });
+afterEach(() => { changeLocale("zh-CN"); });

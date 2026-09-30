@@ -6,6 +6,9 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { AgentContextualSidebar } from "./AgentContextualSidebar";
 import { queryKeys } from "@/lib/queryKeys";
+import { changeLocale } from "@/i18n";
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 
 vi.mock("@/context/CompanyContext", () => ({
   useCompany: () => ({ selectedCompanyId: "company-1" }),
@@ -34,6 +37,32 @@ vi.mock("./SidebarNavItem", () => ({
 }));
 
 describe("AgentContextualSidebar", () => {
+  it("switches mounted navigation labels while preserving routes", async () => {
+    changeLocale("en");
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.instance.experimentalSettings, { enableChatConnectors: false });
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    try {
+      await act(async () => root.render(<QueryClientProvider client={client}><MemoryRouter>
+        <AgentContextualSidebar agentRef="alpha" agentId="agent-1" agentName="Alpha" />
+      </MemoryRouter></QueryClientProvider>));
+      const routes = Array.from(container.querySelectorAll("a"), (a) => a.getAttribute("href"));
+      expect(container.textContent).toContain("Harness / Runtime");
+      await act(async () => changeLocale("zh-CN"));
+      expect(container.textContent).toContain("执行器 / 运行环境");
+      expect(container.textContent).toContain("密钥与变量");
+      expect(container.textContent).toContain("审计");
+      expect(container.textContent).toContain("运行记录");
+      expect(Array.from(container.querySelectorAll("a"), (a) => a.getAttribute("href"))).toEqual(routes);
+      await act(async () => changeLocale("en"));
+      expect(container.textContent).toContain("Permissions / Trust");
+    } finally {
+      await act(async () => root.unmount());
+      client.clear();
+      changeLocale("en");
+    }
+  });
   it.each([false, true])("shows agent Channels only when chat connectors are enabled (%s)", (enabled) => {
     const client = new QueryClient();
     client.setQueryData(queryKeys.instance.experimentalSettings, { enableChatConnectors: enabled });

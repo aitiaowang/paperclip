@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import type { AnchorHTMLAttributes, ReactNode } from "react";
+import { changeLocale } from "../i18n";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,6 +32,7 @@ let container: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 
 beforeEach(() => {
+  changeLocale("en");
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -113,5 +115,17 @@ describe("RoutineSubSidebar", () => {
       triggers.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(onNavigate).toHaveBeenCalledWith("triggers");
+  });
+  it("switches live navigation labels without changing route keys or dirty state", () => {
+    const { onNavigate } = renderSidebar({ activeSection: "triggers", dirty: ["overview"] });
+    const link = container.querySelector<HTMLAnchorElement>('a[href="/routines/r1/triggers"]')!;
+    act(() => changeLocale("zh-CN"));
+    expect(link.textContent).toBe("触发器");
+    expect(link.getAttribute("aria-current")).toBe("page");
+    expect(container.querySelectorAll('[aria-label="有未保存的更改"]')).toHaveLength(1);
+    act(() => link.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onNavigate).toHaveBeenCalledWith("triggers");
+    act(() => changeLocale("en"));
+    expect(link.textContent).toBe("Triggers");
   });
 });

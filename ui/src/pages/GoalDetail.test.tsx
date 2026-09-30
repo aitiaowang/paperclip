@@ -1,8 +1,12 @@
+import { beforeEach } from "vitest";
+import { changeLocale } from "../i18n";
 // @vitest-environment node
 
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { GoalPropertiesToggleButton } from "./GoalDetail";
+
+beforeEach(() => changeLocale("en"));
 
 describe("GoalPropertiesToggleButton", () => {
   it("shows the reopen control when the properties panel is hidden", () => {

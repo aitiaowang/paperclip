@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { changeLocale } from "../../i18n";
+beforeEach(() => changeLocale("en"));
 import type { FolderListItem } from "@paperclipai/shared";
 import {
   buildSkillFolderTree,

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { changeLocale } from "../i18n";
 import type { ComponentProps } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
@@ -1577,3 +1578,6 @@ describe("InboxGroupHeader", () => {
     });
   });
 });
+
+beforeEach(() => { changeLocale("en"); });
+afterEach(() => { changeLocale("zh-CN"); });

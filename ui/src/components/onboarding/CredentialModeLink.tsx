@@ -1,3 +1,4 @@
+import { useTranslation } from "@/i18n";
 import { AnimatePresence, motion } from "motion/react";
 
 import { cn } from "../../lib/utils";
@@ -34,6 +35,7 @@ export function CredentialModeLink({
   mode: CredentialMode;
   onChange: (next: CredentialMode) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -59,7 +61,7 @@ export function CredentialModeLink({
           aria-hidden
           className="invisible col-start-1 row-start-1 whitespace-nowrap"
         >
-          {LINK_LABEL[sizerMode]}
+          {t(`newAgentConnection.mode.${sizerMode}`)}
         </span>
       ))}
 
@@ -81,7 +83,7 @@ export function CredentialModeLink({
           animate={{ opacity: 1, transition: LINK_LABEL_FADE_IN }}
           exit={{ opacity: 0, transition: LINK_LABEL_FADE_OUT }}
         >
-          {LINK_LABEL[mode]}
+          {t(`newAgentConnection.mode.${mode}`)}
         </motion.span>
       </AnimatePresence>
     </button>

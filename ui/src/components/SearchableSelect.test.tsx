@@ -4,6 +4,7 @@ import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { changeLocale } from "@/i18n";
 import { SearchableSelect, type SearchableSelectGroup, type SearchableSelectOption } from "./SearchableSelect";
 import {
   buildReusableExecutionWorkspaceOptionGroups,
@@ -78,6 +79,7 @@ describe("SearchableSelect", () => {
   let originalResizeObserver: typeof ResizeObserver | undefined;
 
   beforeEach(() => {
+    changeLocale("en");
     originalResizeObserver = globalThis.ResizeObserver;
     globalThis.ResizeObserver = class ResizeObserver {
       observe() {}
@@ -90,6 +92,7 @@ describe("SearchableSelect", () => {
   });
 
   afterEach(() => {
+    changeLocale("zh-CN");
     if (root) {
       act(() => {
         root?.unmount();

@@ -10,12 +10,18 @@ import type {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   TeamCatalog,
+  StepTargetManager,
+  StepSourcePolicy,
+  StepSkillPlan,
   listTeamInstallAdapterTypes,
   parseTeamRoute,
   resolveTeamInstallAdapterType,
   teamRoute,
 } from "./TeamCatalog";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { changeLocale } from "../i18n";
+
+beforeEach(() => changeLocale("en"));
 
 const mockTeamCatalogApi = vi.hoisted(() => ({
   catalogList: vi.fn(),
@@ -237,6 +243,7 @@ function findButton(label: string): HTMLButtonElement | undefined {
 
 describe("TeamCatalog install preview path", () => {
   let container: HTMLDivElement;
+  const mountedRoots = new Set<ReturnType<typeof createRoot>>();
 
   beforeEach(() => {
     mockAdapterAvailability.disabled = new Set(["paperclip_runner"]);
@@ -263,6 +270,10 @@ describe("TeamCatalog install preview path", () => {
   });
 
   afterEach(() => {
+    flushSync(() => {
+      for (const root of mountedRoots) root.unmount();
+      mountedRoots.clear();
+    });
     container.remove();
     document.body.innerHTML = "";
     vi.clearAllMocks();
@@ -270,6 +281,7 @@ describe("TeamCatalog install preview path", () => {
 
   async function renderPage() {
     const root = createRoot(container);
+    mountedRoots.add(root);
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     await act(async () => {
       root.render(
@@ -291,6 +303,65 @@ describe("TeamCatalog install preview path", () => {
     // summary grid counts
     expect(document.body.textContent).toContain("Agents");
     expect(document.body.textContent).toContain("Projects");
+  });
+
+  it("switches the catalog and open installer live while preserving source content and install values", async () => {
+    changeLocale("zh-CN");
+    const root = await renderPage();
+    expect(document.body.textContent).toContain("所有类型");
+    expect(document.body.textContent).toContain("智能体层级");
+    expect(document.body.textContent).toContain("Core Exec Team");
+    expect(document.body.textContent).toContain("A starter executive team.");
+    expect(mockSetBreadcrumbs).toHaveBeenLastCalledWith([
+      { label: "组织架构", href: "/org" }, { label: "团队", href: "/teams-catalog" },
+    ]);
+    await act(async () => findButton("安装团队")!.click());
+    await flushReact();
+    expect(document.body.textContent).toContain("第 1 / 1 步 · 预览");
+    expect(document.body.textContent).toContain("名称冲突策略");
+    expect(document.body.textContent).toContain("重命名冲突项");
+    await act(async () => changeLocale("en"));
+    expect(document.body.textContent).toContain("Step 1 of 1 · Preview");
+    expect(document.body.textContent).toContain("Collision strategy");
+    expect(document.body.textContent).toContain("Rename collisions");
+    expect(document.body.textContent).toContain("Core Exec Team");
+    const installButtons = [...document.querySelectorAll("button")].filter((button) => button.textContent?.includes("Install team"));
+    await act(async () => installButtons.at(-1)!.click());
+    await flushReact();
+    expect(mockTeamCatalogApi.install).toHaveBeenCalledWith("company-1", "team-no-deps", expect.objectContaining({ collisionStrategy: "rename" }));
+    expect(document.body.textContent).toContain("Team installed");
+    await act(async () => changeLocale("zh-CN"));
+    expect(document.body.textContent).toContain("团队已安装");
+    expect(document.body.textContent).toContain("查看已导入智能体");
+    await act(async () => root.unmount());
+  });
+
+  it("switches manager, source policy, and skill plan instructions while retaining source refs", async () => {
+    changeLocale("zh-CN");
+    const team = makeTeam({
+      rootAgentSlugs: ["ceo"],
+      sourceRefs: [{ type: "github", ref: "example/original-team", pinned: false }],
+      requiredSkills: [{ type: "catalog", ref: "original-skill", agentSlugs: ["ceo"], resolved: false }],
+    });
+    const root = createRoot(container);
+    mountedRoots.add(root);
+    await act(async () => root.render(<TooltipProvider>
+      <StepTargetManager team={team} agents={[]} targetManagerAgentId={null} onPickManager={vi.fn()}
+        fullCompany={false} onToggleFullCompany={vi.fn()} canBypassManager />
+      <StepSourcePolicy team={team} allowExternalSources={false} allowUnpinnedOptionalSources={false}
+        allowLocalPathSources={false} onChange={vi.fn()} />
+      <StepSkillPlan team={team} preparations={null} />
+    </TooltipProvider>));
+    expect(container.textContent).toContain("目标主管");
+    expect(container.textContent).toContain("允许未固定版本的可选来源");
+    expect(container.textContent).toContain("将从目录安装");
+    expect(container.textContent).toContain("example/original-team");
+    expect(container.textContent).toContain("original-skill");
+    await act(async () => changeLocale("en"));
+    expect(container.textContent).toContain("Target manager");
+    expect(container.textContent).toContain("Allow unpinned optional sources");
+    expect(container.textContent).toContain("Will install from catalog");
+    expect(container.textContent).toContain("original-skill");
   });
 
   it("opens the installer, fetches the preview, and submits the install", async () => {

@@ -1,3 +1,4 @@
+import { useTranslation } from "../../i18n";
 import { AgentAvatar } from "../AgentAvatar";
 import { AgentIdentity } from "../AgentIdentity";
 import { memo, type ComponentType, type SVGProps } from "react";
@@ -15,35 +16,37 @@ type SnippetStyle = {
 };
 
 const SNIPPET_STYLES: Record<string, SnippetStyle> = {
-  comment: { Icon: MessageSquare, label: "Comment" },
-  document: { Icon: FileText, label: "Doc" },
-  artifact: { Icon: Paperclip, label: "Artifact" },
-  description: { Icon: Quote, label: "Description" },
+  agent: { Icon: Bot, label: "searchUi.agent" },
+  project: { Icon: Hexagon, label: "searchUi.project" },
+  comment: { Icon: MessageSquare, label: "searchUi.comment" },
+  document: { Icon: FileText, label: "searchUi.document" },
+  artifact: { Icon: Paperclip, label: "searchUi.artifact" },
+  description: { Icon: Quote, label: "searchUi.description" },
 };
 
 function snippetStyle(field: string, fallbackLabel: string): SnippetStyle {
   return SNIPPET_STYLES[field] ?? { Icon: Quote, label: fallbackLabel };
 }
 
-function formatRelativeTime(input: string | null): string {
+function formatRelativeTime(input: string | null, t: ReturnType<typeof useTranslation>["t"]): string {
   if (!input) return "";
   const value = new Date(input);
   if (Number.isNaN(value.getTime())) return "";
   const diffMs = Date.now() - value.getTime();
   const seconds = Math.round(diffMs / 1000);
-  if (seconds < 60) return "just now";
+  if (seconds < 60) return t("searchUi.time.now");
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60) return t("searchUi.time.minutes", { count: minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h`;
+  if (hours < 24) return t("searchUi.time.hours", { count: hours });
   const days = Math.round(hours / 24);
-  if (days < 7) return `${days}d`;
+  if (days < 7) return t("searchUi.time.days", { count: days });
   const weeks = Math.round(days / 7);
-  if (weeks < 5) return `${weeks}w`;
+  if (weeks < 5) return t("searchUi.time.weeks", { count: weeks });
   const months = Math.round(days / 30);
-  if (months < 12) return `${months}mo`;
+  if (months < 12) return t("searchUi.time.months", { count: months });
   const years = Math.round(days / 365);
-  return `${years}y`;
+  return t("searchUi.time.years", { count: years });
 }
 
 export interface SearchResultRowProps {
@@ -62,6 +65,7 @@ function SearchResultRowImpl({
   isActive,
   className,
 }: SearchResultRowProps) {
+  const { t } = useTranslation();
   if (result.type === "agent") {
     return (
       <Link
@@ -113,7 +117,7 @@ function SearchResultRowImpl({
   if (result.type === "artifact") {
     const artifact = result.artifact;
     if (!artifact) return null;
-    const updated = formatRelativeTime(result.updatedAt ?? artifact.updatedAt);
+    const updated = formatRelativeTime(result.updatedAt ?? artifact.updatedAt, t);
     return (
       <Link
         to={result.href}
@@ -164,7 +168,7 @@ function SearchResultRowImpl({
   const assigneeName = issue.assigneeAgentId
     ? agentsById?.get(issue.assigneeAgentId)?.name ?? null
     : null;
-  const updated = formatRelativeTime(result.updatedAt ?? issue.updatedAt);
+  const updated = formatRelativeTime(result.updatedAt ?? issue.updatedAt, t);
   const titleHighlights = result.snippets.find((snippet) => snippet.field === "title")?.highlights;
   const bodySnippets = result.snippets.filter((snippet) => snippet.field !== "title").slice(0, 2);
   const previewImageUrl = result.previewImageUrl;
@@ -244,6 +248,7 @@ interface SnippetLineProps {
 }
 
 function SnippetLine({ text, highlights, field, fallbackLabel, multiline = false }: SnippetLineProps) {
+  const { t } = useTranslation();
   const { Icon, label } = snippetStyle(field, fallbackLabel);
   return (
     <div
@@ -259,7 +264,7 @@ function SnippetLine({ text, highlights, field, fallbackLabel, multiline = false
       <span
         className="shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 text-(length:--text-nano) font-medium uppercase tracking-wide text-muted-foreground"
       >
-        {label}
+        {SNIPPET_STYLES[field] ? t(label) : label}
       </span>
       <HighlightedText
         text={text}

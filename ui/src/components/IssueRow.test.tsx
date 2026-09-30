@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { changeLocale } from "../i18n";
 import { act as reactAct } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
@@ -846,3 +847,6 @@ describe("IssueRow", () => {
     });
   });
 });
+
+beforeEach(() => { changeLocale("en"); });
+afterEach(() => { changeLocale("zh-CN"); });

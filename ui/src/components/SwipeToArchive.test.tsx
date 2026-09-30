@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { changeLocale } from "../i18n";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -254,3 +255,6 @@ describe("SwipeToArchive", () => {
     });
   });
 });
+
+beforeEach(() => { changeLocale("en"); });
+afterEach(() => { changeLocale("zh-CN"); });

@@ -8,6 +8,7 @@ import type { CompanySecret, UserSecretDefinition } from "@paperclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MissingUserSecretsBanner } from "./MissingUserSecretsBanner";
 import type { MyUserSecretEntry } from "../../api/secrets";
+import { changeLocale } from "@/i18n";
 
 const mockSecretsApi = vi.hoisted(() => ({
   listMyUserSecrets: vi.fn(),
@@ -94,6 +95,7 @@ let container: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
+  changeLocale("en");
   vi.clearAllMocks();
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -101,6 +103,7 @@ beforeEach(() => {
 
 afterEach(() => {
   act(() => root.unmount());
+  changeLocale("zh-CN");
   container.remove();
 });
 
@@ -172,5 +175,15 @@ describe("MissingUserSecretsBanner", () => {
 
     // Dialog content renders in a portal on document.body.
     expect(document.body.textContent).toContain("Set your value");
+
+    await act(async () => {
+      changeLocale("zh-CN");
+      await Promise.resolve();
+    });
+    expect(document.body.textContent).toContain("设置你的值");
+    expect(document.body.textContent).toContain("用户密钥");
+    expect(document.body.textContent).toContain("PERSONAL_GH_TOKEN");
+    expect(document.querySelector('textarea[placeholder="粘贴你的令牌或凭据"]')).not.toBeNull();
+    expect(document.body.textContent).not.toContain("Set your value");
   });
 });

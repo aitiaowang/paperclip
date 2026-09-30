@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, afterEach, describe, expect, it } from "vitest";
+import { changeLocale } from "@/i18n";
+
 import type { RoutineVariable } from "@paperclipai/shared";
 import { dedupedTriggerLabel, runRowSubtitle } from "./routine-run-display";
 
@@ -88,3 +90,7 @@ describe("dedupedTriggerLabel", () => {
     expect(dedupedTriggerLabel(null)).toBeNull();
   });
 });
+
+
+beforeEach(() => changeLocale("en"));
+afterEach(() => changeLocale("zh-CN"));

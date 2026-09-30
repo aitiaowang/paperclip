@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { InlineEntitySelector } from "./InlineEntitySelector";
+import { changeLocale } from "@/i18n";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -21,12 +22,14 @@ describe("InlineEntitySelector", () => {
   let originalMatchMedia: typeof window.matchMedia;
 
   beforeEach(() => {
+    changeLocale("en");
     originalMatchMedia = window.matchMedia;
     container = document.createElement("div");
     document.body.appendChild(container);
   });
 
   afterEach(() => {
+    changeLocale("zh-CN");
     window.matchMedia = originalMatchMedia;
     container.remove();
     document.body.innerHTML = "";
@@ -136,6 +139,17 @@ describe("InlineEntitySelector", () => {
     expect(document.querySelector("[data-mobile-entity-picker-header]")?.textContent).toContain("Responsible");
     expect(document.querySelector('button[aria-label="Close selector"]')).not.toBeNull();
     expect(document.activeElement).toBe(searchInput);
+
+    await act(async () => {
+      changeLocale("zh-CN");
+      await Promise.resolve();
+    });
+    expect(document.querySelector('button[aria-label="关闭选择器"]')).not.toBeNull();
+    expect(document.querySelector('input[placeholder="Search responsible..."]')).toBe(searchInput);
+    await act(async () => {
+      changeLocale("en");
+      await Promise.resolve();
+    });
 
     await act(async () => {
       (document.querySelector('button[aria-label="Close selector"]') as HTMLButtonElement | null)?.click();

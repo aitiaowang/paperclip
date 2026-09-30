@@ -3,7 +3,10 @@
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { changeLocale } from "@/i18n";
+
+beforeEach(() => changeLocale("en"));
 
 import {
   SkillPolicyDenialNotice,

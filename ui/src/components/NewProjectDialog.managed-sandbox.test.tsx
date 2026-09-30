@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NewProjectDialog } from "./NewProjectDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { queryKeys } from "../lib/queryKeys";
+import { changeLocale } from "../i18n";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -45,6 +46,7 @@ let container: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
+  changeLocale("en");
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -84,6 +86,21 @@ function localPathInput() {
 }
 
 describe("NewProjectDialog — source repositories across host policies", () => {
+  it("preserves the project draft when the global language changes", () => {
+    render({});
+    const input = document.body.querySelector<HTMLInputElement>('input[aria-label="Project name"]')!;
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "My unchanged project");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    act(() => changeLocale("zh-CN"));
+    expect(documentText()).toContain("创建项目");
+    expect(documentText()).toContain("添加 GitHub 仓库");
+    expect(document.body.querySelector<HTMLInputElement>('input[aria-label="项目名称"]')?.value).toBe("My unchanged project");
+    act(() => changeLocale("en"));
+    expect(input.value).toBe("My unchanged project");
+    expect(documentText()).toContain("Create project");
+  });
   it.each([
     ["policy off", {}],
     ["policy unresolved", null],

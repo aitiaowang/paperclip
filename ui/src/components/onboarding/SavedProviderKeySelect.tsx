@@ -1,3 +1,4 @@
+import { useTranslation } from "@/i18n";
 import { aiConnectionsApi } from "@/api/ai-connections";
 import type { AiProvider } from "@paperclipai/shared";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +18,7 @@ export function useSavedProviderKeys(
   envKey: string,
   enabled = true,
 ) {
+  const { t } = useTranslation();
   const provider = ({ ANTHROPIC_API_KEY: "anthropic", OPENAI_API_KEY: "openai", OPENROUTER_API_KEY: "openrouter", XAI_API_KEY: "xai" } as Record<string, AiProvider>)[envKey];
   const managed = useQuery({
     queryKey: ["ai-connections", companyId],
@@ -24,7 +26,7 @@ export function useSavedProviderKeys(
     enabled: Boolean(companyId && provider) && enabled,
     retry: false,
   });
-  const managedAccounts = provider && managed.data ? savedManagedProviderAccounts(companyId!, provider, managed.data.currentUserId, managed.data.connections) : [];
+  const managedAccounts = provider && managed.data ? savedManagedProviderAccounts(companyId!, provider, managed.data.currentUserId, managed.data.connections, t) : [];
   const personal = useQuery({
     queryKey: queryKeys.secrets.myUserSecrets(companyId ?? ""),
     queryFn: () => secretsApi.listMyUserSecrets(companyId!),
@@ -59,10 +61,12 @@ export function useSavedProviderKeys(
       envKey,
       personal.data ?? [],
       organization.data ?? [],
+      t,
     )],
     subscriptions: [...managedAccounts.filter(account => account.aiConnection?.method === "subscription"), ...(provider === "openai" ? savedCodexSubscriptions(
       companyId ?? "",
       organization.data ?? [],
+      t,
     ) : [])],
     // Background refreshes must not unmount an active login panel sharing this query.
     loading: personal.isLoading || organization.isLoading || storedLogin.isLoading || managed.isLoading,
@@ -87,13 +91,14 @@ export function SavedProviderKeySelect({
   disabled?: boolean;
   kind?: "api" | "subscription";
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2">
       {options.length > 0 && (
         <label className="block space-y-2 text-sm">
-          <span>{kind === "api" ? "API key" : "Subscription"}</span>
+          <span>{kind === "api" ? t("newAgentConnection.apiKey") : t("newAgentConnection.subscription")}</span>
           <select
-            aria-label={kind === "api" ? "Saved API key" : "Saved subscription"}
+            aria-label={kind === "api" ? t("newAgentConnection.savedKey") : t("newAgentConnection.savedSubscription")}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={value}
             onChange={(event) => onChange(event.target.value)}
@@ -106,26 +111,25 @@ export function SavedProviderKeySelect({
             ))}
             <option value="">
               {kind === "api"
-                ? "Enter a new API key"
-                : "Sign in to another account"}
+                ? t("newAgentConnection.newKey")
+                : t("newAgentConnection.anotherAccount")}
             </option>
           </select>
         </label>
       )}
       {loading && (
         <p role="status" className="text-sm text-muted-foreground">
-          Checking saved API keys…
+          {t("newAgentConnection.checkingSaved")}
         </p>
       )}
       {error && (
         <p role="alert" className="text-sm text-destructive">
-          Some saved keys could not be loaded. You can still enter a new key.
+          {t("newAgentConnection.savedLoadFailed")}
         </p>
       )}
       {value && (
         <p className="text-sm text-muted-foreground">
-          Reuse this saved {kind === "api" ? "key" : "subscription"} for this
-          agent.
+          {t(kind === "api" ? "newAgentConnection.reuseKey" : "newAgentConnection.reuseSubscription")}
         </p>
       )}
     </div>

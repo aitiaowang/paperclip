@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { changeLocale } from "@/i18n";
 import { describeCron } from "./cron-readable";
 
 describe("describeCron", () => {
@@ -28,4 +29,16 @@ describe("describeCron", () => {
     expect(describeCron("not a cron")).toBeNull();
     expect(describeCron("1 2 3")).toBeNull();
   });
+
+  it("uses the current language without changing cron semantics", () => {
+    changeLocale("zh-CN");
+    expect(describeCron("30 9 * * 1")).toBe("每周一 09:30");
+    expect(describeCron("*/15 * * * *")).toBe("每 15 分钟");
+    expect(describeCron("not a cron")).toBeNull();
+    changeLocale("en");
+    expect(describeCron("30 9 * * 1")).toBe("Every Monday at 09:30");
+  });
 });
+
+beforeEach(() => { changeLocale("en"); });
+afterEach(() => { changeLocale("zh-CN"); });

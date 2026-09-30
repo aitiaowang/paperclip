@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import type { ReactNode } from "react";
+import { changeLocale } from "../i18n";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -56,6 +57,7 @@ describe("routine contextual navigation", () => {
   let root: Root;
 
   beforeEach(() => {
+  changeLocale("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -110,5 +112,15 @@ describe("routine contextual navigation", () => {
     expect(container.querySelector('a[href="/routines/routine-1/activity"]'))
       .not.toBeNull();
     expect(container.textContent).not.toContain("History");
+  });
+  it("switches mounted navigation while preserving the routine title and destinations", () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    flushSync(() => root.render(<QueryClientProvider client={queryClient}><RoutineContextualSidebar routineId="routine-1" title="Weekly release review" /></QueryClientProvider>));
+    flushSync(() => changeLocale("zh-CN"));
+    expect(container.querySelector('a[href="/routines/routine-1/overview"]')?.textContent).toBe("概览");
+    expect(container.querySelector("aside")?.getAttribute("data-title")).toBe("Weekly release review");
+    expect(container.querySelector('nav')?.getAttribute("aria-label")).toBe("定时任务导航");
+    flushSync(() => changeLocale("en"));
+    expect(container.querySelector('a[href="/routines/routine-1/overview"]')?.textContent).toBe("Overview");
   });
 });

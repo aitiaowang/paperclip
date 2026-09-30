@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { i18n } from "../i18n";
+
 import type { ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
@@ -137,7 +139,8 @@ const CLOUD_HEALTH = {
 describe("SidebarCompanyMenu", () => {
   let container: HTMLDivElement;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     mockAuthApi.getSession.mockResolvedValue({

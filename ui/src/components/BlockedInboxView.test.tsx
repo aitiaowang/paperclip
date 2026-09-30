@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { changeLocale } from "../i18n";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -401,3 +402,6 @@ describe("BlockedInboxView", () => {
     act(() => root.unmount());
   });
 });
+
+beforeEach(() => { changeLocale("en"); });
+afterEach(() => { changeLocale("zh-CN"); });

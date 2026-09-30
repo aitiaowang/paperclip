@@ -1,3 +1,4 @@
+import { t, useTranslation } from "@/i18n";
 import { AiConnectionField } from "./ai-connections/AiConnectionField";
 import { aiConnectionBindingSchema } from "@paperclipai/shared";
 import { testAgentSetup } from "@/lib/test-agent-setup";
@@ -2206,20 +2207,21 @@ function AdapterLoginTerminalState({
   status: AdapterAuthSessionStatus;
   message: string | null;
 }) {
+  const { t } = useTranslation();
   if (status === "authenticated") {
     return (
       <div className="flex items-center gap-2 text-(length:--text-micro) text-foreground">
         <Check className="size-3 shrink-0" />
-        <span>Authenticated. The environment has credentials now.</span>
+        <span>{t("newAgentLogin.authenticated")}</span>
       </div>
     );
   }
   const label =
     status === "timed_out"
-      ? "Login timed out"
+      ? t("newAgentLogin.timedOutLabel")
       : status === "cancelled"
-        ? "Login cancelled"
-        : "Login failed";
+        ? t("newAgentLogin.cancelledLabel")
+        : t("newAgentLogin.failedLabel");
   return (
     <div className="flex items-start gap-2 text-(length:--text-micro) text-destructive">
       <TriangleAlert className="size-3 shrink-0" />
@@ -2329,7 +2331,7 @@ const ADAPTER_LOGIN_PROVIDER: Record<string, string> = {
 
 function adapterLoginTitle(adapterType: string): string {
   const provider = ADAPTER_LOGIN_PROVIDER[adapterType];
-  return provider ? `Sign in to ${provider}` : "Sign in to the environment";
+  return provider ? t("newAgentLogin.signInProvider", { provider }) : t("newAgentLogin.signInEnvironment");
 }
 
 export function AdapterLoginPanel(props: AdapterLoginPanelProps) {
@@ -2342,9 +2344,16 @@ export function AdapterLoginPanel(props: AdapterLoginPanelProps) {
 }
 
 class AdapterLoginConflictError extends Error {
-  constructor(readonly sessionId: string) {
+  constructor(readonly sessionId: string, readonly messageKey = "newAgentLogin.conflict") {
     super("Another sign-in attempt is active. Finish or cancel that attempt before starting a new sign-in.");
   }
+}
+
+type AdapterLoginError = { key: string } | { message: string };
+
+function adapterLoginError(error: unknown, fallbackKey: string): AdapterLoginError {
+  if (error instanceof AdapterLoginConflictError) return { key: error.messageKey };
+  return error instanceof Error ? { message: error.message } : { key: fallbackKey };
 }
 
 function DisplayedCodeLoginPanel({
@@ -2358,8 +2367,9 @@ function DisplayedCodeLoginPanel({
   aiConnection,
   onPromptReady,
 }: AdapterLoginPanelProps) {
+  const { t } = useTranslation();
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [startError, setStartError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<AdapterLoginError | null>(null);
   // The server delivers the one-time prompt on the first owner read only. Latch
   // it so a later poll that returns a null prompt does not hide the code and the
   // URL.
@@ -2391,7 +2401,7 @@ function DisplayedCodeLoginPanel({
       setSessionId(session.sessionId);
     },
     onError: (error) => {
-      setStartError(error instanceof Error ? error.message : "Could not start the login.");
+      setStartError(adapterLoginError(error, "newAgentLogin.startFailed"));
     },
   });
 
@@ -2408,7 +2418,7 @@ function DisplayedCodeLoginPanel({
     mutationFn: () => agentsApi.cancelAdapterAuthLogin(companyId, adapterType, sessionId!),
     onSuccess: clearActiveSession,
     onError: (error) => {
-      setStartError(error instanceof Error ? error.message : "Could not cancel the login.");
+      setStartError(adapterLoginError(error, "newAgentLogin.cancelFailed"));
     },
   });
 
@@ -2539,7 +2549,7 @@ function DisplayedCodeLoginPanel({
       setStartError(null);
       await activeSessionQuery.refetch();
     },
-    onError: () => setStartError("Could not cancel the previous sign-in. Retry before starting a new one."),
+    onError: () => setStartError({ key: "newAgentLogin.cancelPreviousFailed" }),
   });
   const startLoginRef = useRef(startLogin.mutate);
   startLoginRef.current = startLogin.mutate;
@@ -2551,9 +2561,7 @@ function DisplayedCodeLoginPanel({
     if (activeSessionQuery.isError) {
       autoStartedRef.current = true;
       setStartError(
-        activeSessionQuery.error instanceof Error
-          ? activeSessionQuery.error.message
-          : "Could not check for an active login.",
+        adapterLoginError(activeSessionQuery.error, "newAgentLogin.checkActiveFailed"),
       );
       return;
     }
@@ -2638,21 +2646,19 @@ function DisplayedCodeLoginPanel({
       >
         {startError ? (
           <div>
-            <p role="alert" className="pl-2 text-xs text-destructive">{startError}</p>
+            <p role="alert" className="pl-2 text-xs text-destructive">{startError && ("key" in startError ? t(startError.key) : startError.message)}</p>
             {activeSessionQuery.error instanceof AdapterLoginConflictError && (
               <Button type="button" variant="outline" disabled={cancelConflictingLogin.isPending}
-                onClick={() => cancelConflictingLogin.mutate()}>
-                Cancel previous sign-in and retry
-              </Button>
+                onClick={() => cancelConflictingLogin.mutate()}>{t("newAgentLogin.cancelPrevious")}</Button>
             )}
           </div>
         ) : failed ? (
           <p role="alert" className="pl-2 text-xs text-destructive">
             {status === "timed_out"
-              ? "The login timed out. Start it again."
+              ? t("newAgentLogin.timedOut")
               : status === "cancelled"
-                ? "The login was cancelled."
-                : "The login did not finish. Start it again."}
+                ? t("newAgentLogin.cancelled")
+                : t("newAgentLogin.unfinished")}
           </p>
         ) : (
           <OnboardingLoginCodeRow code={prompt?.code ?? ""} autoCopy />
@@ -2679,9 +2685,7 @@ function DisplayedCodeLoginPanel({
               className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground"
               disabled={cancelLogin.isPending}
               onClick={() => cancelLogin.mutate()}
-            >
-              Cancel
-            </Button>
+            >{t("newAgentLogin.cancel")}</Button>
           )}
           <Button
             type="button"
@@ -2690,15 +2694,13 @@ function DisplayedCodeLoginPanel({
             className="h-7 px-2.5 text-xs"
             disabled={startDisabled}
             onClick={() => startLogin.mutate()}
-          >
-            Sign in
-          </Button>
+          >{t("newAgentLogin.signIn")}</Button>
         </div>
       </div>
 
       {startError && (
         <div role="alert" className="text-(length:--text-micro) text-destructive">
-          {startError}
+          {startError && ("key" in startError ? t(startError.key) : startError.message)}
         </div>
       )}
 
@@ -2708,15 +2710,13 @@ function DisplayedCodeLoginPanel({
         {isActive && !prompt && (
           <div className="flex items-center gap-2 text-(length:--text-micro) text-muted-foreground">
             <Loader2 className="size-3 animate-spin shrink-0" />
-            <span>Preparing...</span>
+            <span>{t("newAgentLogin.preparing")}</span>
           </div>
         )}
 
         {isActive && prompt && (
           <div className="space-y-2">
-            <div className="text-(length:--text-micro) text-muted-foreground">
-              Copy the code, then open the authentication page.
-            </div>
+            <div className="text-(length:--text-micro) text-muted-foreground">{t("newAgentLogin.copyInstructions")}</div>
           {/* Code first, then the URL, and the sentence and the numbering both
               say so.
 
@@ -2734,29 +2734,25 @@ function DisplayedCodeLoginPanel({
               does come first. */}
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <div className="text-(length:--text-micro) uppercase tracking-wide text-muted-foreground">
-                1. Code
-              </div>
+              <div className="text-(length:--text-micro) uppercase tracking-wide text-muted-foreground">{t("newAgentLogin.codeStep")}</div>
               <span className="font-mono text-xs text-foreground break-all">{prompt.code}</span>
             </div>
-            <AdapterLoginCopyButton value={prompt.code} label="Copy code" />
+            <AdapterLoginCopyButton value={prompt.code} label={t("newAgentLogin.copyCode")} />
           </div>
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <div className="text-(length:--text-micro) uppercase tracking-wide text-muted-foreground">
-                2. Authentication URL
-              </div>
+              <div className="text-(length:--text-micro) uppercase tracking-wide text-muted-foreground">{t("newAgentLogin.authenticationStep")}</div>
               <span className="font-mono text-xs text-foreground break-all">{prompt.url}</span>
             </div>
             <div className="flex items-center">
-              <AdapterLoginCopyButton value={prompt.url} label="Copy URL" />
+              <AdapterLoginCopyButton value={prompt.url} label={t("newAgentLogin.copyUrl")} />
               <Button
                 asChild
                 type="button"
                 variant="ghost"
                 size="icon-xs"
-                aria-label="Open the authentication page"
-                title="Open the authentication page"
+                aria-label={t("newAgentLogin.openAuthentication")}
+                title={t("newAgentLogin.openAuthentication")}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <a href={prompt.url} target="_blank" rel="noreferrer noopener">
@@ -2778,21 +2774,19 @@ function DisplayedCodeLoginPanel({
         {status === "authenticated" && accountBindState === "saving" && (
           <div className="flex items-center gap-2 text-(length:--text-micro) text-muted-foreground">
             <Loader2 className="size-3 animate-spin shrink-0" />
-            <span>Binding this agent to the signed-in account...</span>
+            <span>{t("newAgentLogin.binding")}</span>
           </div>
         )}
         {status === "authenticated" && accountBindState === "bound" && (
           <div className="flex items-center gap-2 text-(length:--text-micro) text-foreground">
             <Check className="size-3 shrink-0" />
-            <span>Agent bound to the signed-in account.</span>
+            <span>{t("newAgentLogin.bound")}</span>
           </div>
         )}
         {status === "authenticated" && accountBindState === "failed" && (
           <div className="flex items-center gap-2 text-(length:--text-micro)">
             <TriangleAlert className="size-3 shrink-0 text-destructive" />
-            <span className="text-destructive">
-              Could not bind this agent to the signed-in account.
-            </span>
+            <span className="text-destructive">{t("newAgentLogin.bindFailed")}</span>
             <Button
               type="button"
               variant="outline"
@@ -2801,9 +2795,7 @@ function DisplayedCodeLoginPanel({
               onClick={() => {
                 if (accountBinding) void runAccountBinding(accountBinding);
               }}
-            >
-              Retry
-            </Button>
+            >{t("newAgentLogin.retry")}</Button>
           </div>
         )}
       </div>
@@ -2822,7 +2814,7 @@ const CLAUDE_LOGIN_FAILURE_STATUSES = new Set<AdapterAuthSessionStatus>([
 // The fixed, non-secret message for a failed Claude login. The panel shows this
 // text and returns to its start state. It never shows a provider message that
 // could carry a secret.
-const CLAUDE_LOGIN_FAILED_MESSAGE = "The login did not finish. Start the login again.";
+const CLAUDE_LOGIN_FAILED_MESSAGE = "newAgentLogin.claudeFailed";
 
 // The client wall-clock cap for one active login. The panel polls the status
 // route and the prompt route every two seconds. The server can leave a session
@@ -2839,7 +2831,7 @@ const CLAUDE_LOGIN_FAILSAFE_TIMEOUT_MS = 15 * 60_000;
 
 // The fixed, non-secret message for a timed-out Claude login. The panel shows
 // this text, stops both polls, and returns to its start state.
-const CLAUDE_LOGIN_TIMED_OUT_MESSAGE = "The login timed out. Start the login again.";
+const CLAUDE_LOGIN_TIMED_OUT_MESSAGE = "newAgentLogin.claudeTimedOut";
 
 // The submitted-browser-code login panel for the Claude adapter. It starts a
 // setup-token login, polls the status route, and reads the authorization URL
@@ -2860,8 +2852,9 @@ function SubmittedBrowserCodeLoginPanel({
   aiConnection,
   onPromptReady,
 }: AdapterLoginPanelProps) {
+  const { t } = useTranslation();
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [startError, setStartError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<AdapterLoginError | null>(null);
   // The server delivers the authorization URL on the guarded prompt read only.
   // Latch it so a later poll does not hide the URL.
   const [authorizationUrl, setAuthorizationUrl] = useState<string | null>(null);
@@ -2964,7 +2957,7 @@ function SubmittedBrowserCodeLoginPanel({
       setSessionId(session.sessionId);
     },
     onError: (error) => {
-      setStartError(error instanceof Error ? error.message : "Could not start the login.");
+      setStartError(adapterLoginError(error, "newAgentLogin.startFailed"));
     },
   });
 
@@ -2991,7 +2984,7 @@ function SubmittedBrowserCodeLoginPanel({
         clearActiveSession();
         return;
       }
-      setStartError(error instanceof Error ? error.message : "Could not cancel the login.");
+      setStartError(adapterLoginError(error, "newAgentLogin.cancelFailed"));
     },
   });
 
@@ -3025,7 +3018,7 @@ function SubmittedBrowserCodeLoginPanel({
       try {
         const active = await agentsApi.getActiveClaudeSetupTokenLoginSession(companyId);
         if (!active) return null;
-        if ((aiConnection && active.environmentId !== environmentId) || Boolean(active.aiConnection) !== Boolean(aiConnection) || (aiConnection && (active.aiConnection?.provider !== aiConnection.provider || active.aiConnection?.method !== aiConnection.method || active.aiConnection?.connectionId !== aiConnection.connectionId || active.aiConnection?.ownership !== aiConnection.ownership || active.aiConnection?.allAgents !== aiConnection.allAgents || JSON.stringify(active.aiConnection?.agentIds) !== JSON.stringify(aiConnection.agentIds)))) throw new Error("Another sign-in attempt is active. Finish or cancel it in its original account setup before starting this one.");
+        if ((aiConnection && active.environmentId !== environmentId) || Boolean(active.aiConnection) !== Boolean(aiConnection) || (aiConnection && (active.aiConnection?.provider !== aiConnection.provider || active.aiConnection?.method !== aiConnection.method || active.aiConnection?.connectionId !== aiConnection.connectionId || active.aiConnection?.ownership !== aiConnection.ownership || active.aiConnection?.allAgents !== aiConnection.allAgents || JSON.stringify(active.aiConnection?.agentIds) !== JSON.stringify(aiConnection.agentIds)))) throw new AdapterLoginConflictError(active.sessionId, "newAgentLogin.conflictOriginal");
         return active;
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) return null;
@@ -3155,7 +3148,7 @@ function SubmittedBrowserCodeLoginPanel({
     mutationFn: (code: string) =>
       agentsApi.submitClaudeSetupTokenBrowserCode(companyId, sessionId!, code),
     onError: (error) => {
-      setStartError(error instanceof Error ? error.message : "Could not submit the browser code.");
+      setStartError(adapterLoginError(error, "newAgentLogin.submitFailed"));
     },
   });
 
@@ -3286,9 +3279,7 @@ function SubmittedBrowserCodeLoginPanel({
     if (activeSessionQuery.isError) {
       autoStartedRef.current = true;
       setStartError(
-        activeSessionQuery.error instanceof Error
-          ? activeSessionQuery.error.message
-          : "Could not check for an active login.",
+        adapterLoginError(activeSessionQuery.error, "newAgentLogin.checkActiveFailed"),
       );
       return;
     }
@@ -3382,18 +3373,15 @@ function SubmittedBrowserCodeLoginPanel({
             clear text. */}
         {transportInsecure && (
           <p className="flex items-start gap-2 pl-2 text-xs text-amber-700 dark:text-amber-200">
-            <TriangleAlert className="mt-0.5 size-3 shrink-0" />
-            This connection is not encrypted. The login code travels in clear text on this
-            network. Continue only on a network you trust.
-          </p>
+            <TriangleAlert className="mt-0.5 size-3 shrink-0" />{t("newAgentLogin.transportWarning")}</p>
         )}
         {startError ? (
           <p role="alert" className="pl-2 text-xs text-destructive">
-            {startError}
+            {startError && ("key" in startError ? t(startError.key) : startError.message)}
           </p>
         ) : failedNow ? (
           <p role="alert" className="pl-2 text-xs text-destructive">
-            {timedOut && !isFailure ? CLAUDE_LOGIN_TIMED_OUT_MESSAGE : CLAUDE_LOGIN_FAILED_MESSAGE}
+            {timedOut && !isFailure ? t(CLAUDE_LOGIN_TIMED_OUT_MESSAGE) : t(CLAUDE_LOGIN_FAILED_MESSAGE)}
           </p>
         ) : (
           <OnboardingCardField
@@ -3432,9 +3420,7 @@ function SubmittedBrowserCodeLoginPanel({
               className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground"
               disabled={cancelLogin.isPending}
               onClick={() => cancelLogin.mutate()}
-            >
-              Cancel
-            </Button>
+            >{t("newAgentLogin.cancel")}</Button>
           )}
           {/* Apply the existing stored login with no new login round trip. The
               affordance shows only when the status route reports a stored value
@@ -3449,9 +3435,7 @@ function SubmittedBrowserCodeLoginPanel({
                 onApplyStored();
                 setAppliedStored(true);
               }}
-            >
-              Use saved login
-            </Button>
+            >{t("newAgentLogin.useSaved")}</Button>
           )}
           <Button
             type="button"
@@ -3461,7 +3445,7 @@ function SubmittedBrowserCodeLoginPanel({
             disabled={startDisabled}
             onClick={() => startLogin.mutate()}
           >
-            {storedToken && !isActive && !isStored ? "Sign in to replace" : "Sign in"}
+            {storedToken && !isActive && !isStored ? t("newAgentLogin.replaceLogin") : t("newAgentLogin.signIn")}
           </Button>
         </div>
       </div>
@@ -3470,22 +3454,19 @@ function SubmittedBrowserCodeLoginPanel({
           first and does not force a fresh login. Use saved login binds the stored
           token; a replacement login rotates it under the captured version. */}
       {storedToken && !isActive && !isStored && !appliedStored && (
-        <div className="text-(length:--text-micro) text-muted-foreground">
-          You have a saved Claude login. Use it to bind this agent, or log in again to replace the
-          stored token.
-        </div>
+        <div className="text-(length:--text-micro) text-muted-foreground">{t("newAgentLogin.savedDescription")}</div>
       )}
 
       {appliedStored && (
         <div className="flex items-center gap-2 text-(length:--text-micro) text-foreground">
           <Check className="size-3 shrink-0" />
-          <span>The saved Claude login is bound to this agent now.</span>
+          <span>{t("newAgentLogin.savedBound")}</span>
         </div>
       )}
 
       {startError && (
         <div role="alert" className="text-(length:--text-micro) text-destructive">
-          {startError}
+          {startError && ("key" in startError ? t(startError.key) : startError.message)}
         </div>
       )}
 
@@ -3495,7 +3476,7 @@ function SubmittedBrowserCodeLoginPanel({
         {isActive && !authorizationUrl && !isCompleting && (
           <div className="flex items-center gap-2 text-(length:--text-micro) text-muted-foreground">
             <Loader2 className="size-3 animate-spin shrink-0" />
-            <span>Preparing...</span>
+            <span>{t("newAgentLogin.preparing")}</span>
           </div>
         )}
 
@@ -3506,31 +3487,24 @@ function SubmittedBrowserCodeLoginPanel({
                 className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-(length:--text-micro) text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
               >
                 <TriangleAlert className="size-3 shrink-0 mt-0.5" />
-                <span>
-                  This connection is not encrypted. The login code travels in clear text on this
-                  network. Continue only on a network you trust.
-                </span>
+                <span>{t("newAgentLogin.transportWarning")}</span>
               </div>
             )}
-            <div className="text-(length:--text-micro) text-muted-foreground">
-              Open the authorization page, then enter the browser code it shows.
-            </div>
+            <div className="text-(length:--text-micro) text-muted-foreground">{t("newAgentLogin.authorizationInstructions")}</div>
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <div className="text-(length:--text-micro) uppercase tracking-wide text-muted-foreground">
-                  1. Authorization URL
-                </div>
+                <div className="text-(length:--text-micro) uppercase tracking-wide text-muted-foreground">{t("newAgentLogin.authorizationStep")}</div>
                 <span className="font-mono text-xs text-foreground break-all">{authorizationUrl}</span>
               </div>
               <div className="flex items-center">
-                <AdapterLoginCopyButton value={authorizationUrl} label="Copy URL" />
+                <AdapterLoginCopyButton value={authorizationUrl} label={t("newAgentLogin.copyUrl")} />
                 <Button
                   asChild
                   type="button"
                   variant="ghost"
                   size="icon-xs"
-                  aria-label="Open the authorization page"
-                  title="Open the authorization page"
+                  aria-label={t("newAgentLogin.openAuthorization")}
+                  title={t("newAgentLogin.openAuthorization")}
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <a href={authorizationUrl} target="_blank" rel="noreferrer noopener">
@@ -3540,12 +3514,10 @@ function SubmittedBrowserCodeLoginPanel({
               </div>
             </div>
             <div className="space-y-1">
-              <div className="text-(length:--text-micro) uppercase tracking-wide text-muted-foreground">
-                2. Browser code
-              </div>
+              <div className="text-(length:--text-micro) uppercase tracking-wide text-muted-foreground">{t("newAgentLogin.browserCodeStep")}</div>
               <div className="flex items-center gap-2">
                 <input
-                  aria-label="Browser code"
+                  aria-label={t("newAgentLogin.browserCode")}
                   type="text"
                   autoComplete="off"
                   spellCheck={false}
@@ -3566,9 +3538,7 @@ function SubmittedBrowserCodeLoginPanel({
                   className="h-7 px-2.5 text-xs"
                   disabled={!canSubmit}
                   onClick={handleSubmit}
-                >
-                  Submit
-                </Button>
+                >{t("newAgentLogin.submit")}</Button>
               </div>
             </div>
           </div>
@@ -3577,28 +3547,28 @@ function SubmittedBrowserCodeLoginPanel({
         {isCompleting && (
           <div className="flex items-center gap-2 text-(length:--text-micro) text-muted-foreground">
             <Loader2 className="size-3 animate-spin shrink-0" />
-            <span>Completing the login…</span>
+            <span>{t("newAgentLogin.completing")}</span>
           </div>
         )}
 
         {isStored && (
           <div className="flex items-center gap-2 text-(length:--text-micro) text-foreground">
             <Check className="size-3 shrink-0" />
-            <span>Authenticated. The environment has credentials now.</span>
+            <span>{t("newAgentLogin.authenticated")}</span>
           </div>
         )}
 
         {isFailure && (
           <div className="flex items-start gap-2 text-(length:--text-micro) text-destructive">
             <TriangleAlert className="size-3 shrink-0" />
-            <span>{CLAUDE_LOGIN_FAILED_MESSAGE}</span>
+            <span>{t(CLAUDE_LOGIN_FAILED_MESSAGE)}</span>
           </div>
         )}
 
         {timedOut && !isFailure && !isStored && (
           <div className="flex items-start gap-2 text-(length:--text-micro) text-destructive">
             <TriangleAlert className="size-3 shrink-0" />
-            <span>{CLAUDE_LOGIN_TIMED_OUT_MESSAGE}</span>
+            <span>{t(CLAUDE_LOGIN_TIMED_OUT_MESSAGE)}</span>
           </div>
         )}
       </div>
@@ -3753,6 +3723,7 @@ export function ModelDropdown({
   emptyDetectHint?: string;
   defaultLabel?: string;
 }) {
+  const { t } = useTranslation();
   const [modelSearch, setModelSearch] = useState("");
   const [detectingModel, setDetectingModel] = useState(false);
   const selected = models.find((m) => m.id === value);
@@ -3825,7 +3796,7 @@ export function ModelDropdown({
   }
 
   return (
-    <Field label="Model" hint={help.model}>
+    <Field label={t("newAgentLogin.model")} hint={t("newAgentLogin.modelHint")}>
       <Popover
         open={open}
         onOpenChange={(nextOpen) => {
@@ -3839,7 +3810,7 @@ export function ModelDropdown({
               {selected
                 ? selected.label
                 : value
-                  || (allowDefault ? (defaultLabel ?? "Default") : required ? "Select model (required)" : "Select model")}
+                  || (allowDefault ? (defaultLabel ?? t("newAgentLogin.default")) : required ? t("newAgentLogin.selectRequired") : t("newAgentLogin.selectModel"))}
             </span>
             <ChevronDown className="h-3 w-3 text-muted-foreground" />
           </button>
@@ -3848,7 +3819,7 @@ export function ModelDropdown({
           <div className="relative mb-1">
             <input
               className="w-full px-2 py-1.5 pr-6 text-xs bg-transparent outline-none border-b border-border placeholder:text-muted-foreground/50"
-              placeholder={creatable ? "Search models... (type to create)" : "Search models..."}
+              placeholder={creatable ? t("newAgentLogin.searchCreate") : t("newAgentLogin.search")}
               value={modelSearch}
               onChange={(e) => setModelSearch(e.target.value)}
               autoFocus
@@ -3879,7 +3850,7 @@ export function ModelDropdown({
                 <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                 <path d="M3 3v5h5" />
               </svg>
-              {detectingModel ? "Detecting..." : detectedModel ? (detectModelLabel?.replace(/^Detect\b/, "Re-detect") ?? "Re-detect from config") : (detectModelLabel ?? "Detect from config")}
+              {detectingModel ? t("newAgentLogin.detecting") : detectedModel ? t("newAgentLogin.redetect") : (detectModelLabel ?? t("newAgentLogin.detect"))}
             </button>
           )}
           {onRefreshModels && !modelSearch.trim() && (
@@ -3897,7 +3868,7 @@ export function ModelDropdown({
                 <path d="M21 12a9 9 0 0 1-15.28 6.36L3 16" />
                 <path d="M8 16H3v5" />
               </svg>
-              {refreshingModels ? "Refreshing..." : "Refresh models"}
+              {refreshingModels ? t("newAgentLogin.refreshing") : t("newAgentLogin.refresh")}
             </button>
           )}
           {value && (!models.some((m) => m.id === value) || promotedModelIds.has(value)) && (
@@ -3913,9 +3884,7 @@ export function ModelDropdown({
               <span className="block w-full text-left truncate font-mono text-xs" title={value}>
                 {models.find((m) => m.id === value)?.label ?? value}
               </span>
-              <Badge variant="outline" className="ml-auto text-(length:--text-nano) px-1.5 bg-green-500/15 text-green-400 border-green-500/20">
-                current
-              </Badge>
+              <Badge variant="outline" className="ml-auto text-(length:--text-nano) px-1.5 bg-green-500/15 text-green-400 border-green-500/20">{t("newAgentLogin.current")}</Badge>
             </button>
           )}
           {detectedModel && detectedModel !== value && (
@@ -3932,9 +3901,7 @@ export function ModelDropdown({
               <span className="block w-full text-left truncate font-mono text-xs" title={detectedModel}>
                 {models.find((m) => m.id === detectedModel)?.label ?? detectedModel}
               </span>
-              <Badge variant="outline" className="ml-auto text-(length:--text-nano) px-1.5 bg-blue-500/15 text-blue-400 border-blue-500/20">
-                detected
-              </Badge>
+              <Badge variant="outline" className="ml-auto text-(length:--text-nano) px-1.5 bg-blue-500/15 text-blue-400 border-blue-500/20">{t("newAgentLogin.detected")}</Badge>
             </button>
           )}
           {detectedModelCandidates
@@ -3956,9 +3923,7 @@ export function ModelDropdown({
                   <span className="block w-full text-left truncate font-mono text-xs" title={candidate}>
                     {entry?.label ?? candidate}
                   </span>
-                  <Badge variant="outline" className="ml-auto text-(length:--text-nano) px-1.5 bg-sky-500/15 text-sky-400 border-sky-500/20">
-                    config
-                  </Badge>
+                  <Badge variant="outline" className="ml-auto text-(length:--text-nano) px-1.5 bg-sky-500/15 text-sky-400 border-sky-500/20">{t("newAgentLogin.config")}</Badge>
                 </button>
               );
             })}
@@ -3974,9 +3939,7 @@ export function ModelDropdown({
                   onChange("");
                   onOpenChange(false);
                 }}
-              >
-                Default
-              </button>
+              >{t("newAgentLogin.default")}</button>
             )}
             {canCreateManualModel && (
               <button
@@ -3988,7 +3951,7 @@ export function ModelDropdown({
                   setModelSearch("");
                 }}
               >
-                <span>Use manual model</span>
+                <span>{t("newAgentLogin.manual")}</span>
                 <span className="text-xs font-mono text-muted-foreground">{manualModel}</span>
               </button>
             )}
@@ -3996,7 +3959,7 @@ export function ModelDropdown({
               <div key={group.provider} className="mb-1 last:mb-0">
                 {groupByProvider && (
                   <div className="px-2 py-1 text-(length:--text-nano) uppercase tracking-wide text-muted-foreground">
-                    {group.provider} ({group.entries.length})
+                    {group.provider === "other" ? t("newAgentLogin.otherProvider") : group.provider} ({group.entries.length})
                   </div>
                 )}
                 {group.entries.map((m) => (
@@ -4023,8 +3986,8 @@ export function ModelDropdown({
               <div className="px-2 py-2 space-y-2">
                 <p className="text-xs text-muted-foreground">
                   {onDetectModel
-                    ? (emptyDetectHint ?? "No model detected yet. Enter a provider/model manually.")
-                    : "No models found."}
+                    ? (emptyDetectHint ?? t("newAgentLogin.noDetected"))
+                    : t("newAgentLogin.noModels")}
                 </p>
               </div>
             )}

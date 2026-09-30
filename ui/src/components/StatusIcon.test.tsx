@@ -1,7 +1,8 @@
 // @vitest-environment node
 
+import { changeLocale } from "../i18n";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { StatusIcon } from "./StatusIcon";
 import { IssueStatusBadge } from "./StatusBadge";
 
@@ -138,3 +139,6 @@ describe("Slack idle status presentation", () => {
     expect(renderToStaticMarkup(<IssueStatusBadge status="done" externalConversationState="waiting" />)).toContain(">Done<");
   });
 });
+
+beforeEach(() => { changeLocale("en"); });
+afterEach(() => { changeLocale("zh-CN"); });

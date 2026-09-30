@@ -1,3 +1,4 @@
+import { t as translate } from "../i18n";
 import {
   COMPANY_SEARCH_SORTS,
   type CompanySearchSort,
@@ -14,21 +15,21 @@ import type { ParsedSearchQuery } from "./search-query-parser";
 export type SearchFilters = ParsedSearchQuery["filters"];
 
 export const SORT_LABELS: Record<CompanySearchSort, string> = {
-  relevance: "Relevance",
-  updated: "Recently updated",
-  created: "Newest created",
-  priority: "Priority",
+  relevance: "searchUi.sort.relevance",
+  updated: "searchUi.sort.updated",
+  created: "searchUi.sort.created",
+  priority: "searchUi.sort.priority",
 };
 
 export const UPDATED_WITHIN_LABELS: Record<string, string> = {
-  "24h": "Last 24 hours",
-  "7d": "Last 7 days",
-  "30d": "Last 30 days",
-  "90d": "Last 90 days",
+  "24h": "searchUi.within.24h",
+  "7d": "searchUi.within.7d",
+  "30d": "searchUi.within.30d",
+  "90d": "searchUi.within.90d",
 };
 
-export function updatedWithinLabel(value: string): string {
-  return UPDATED_WITHIN_LABELS[value] ?? `Updated ≤ ${value}`;
+export function updatedWithinLabel(value: string, t = translate): string {
+  return UPDATED_WITHIN_LABELS[value] ? t(UPDATED_WITHIN_LABELS[value]!) : t("searchUi.updatedWithin", { value });
 }
 
 const SORT_SET = new Set<string>(COMPANY_SEARCH_SORTS);
@@ -108,25 +109,25 @@ function humanize(value: string): string {
   return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function assigneeChipLabel(filters: SearchFilters, lookups: FilterChipLookups): string {
-  if (filters.assigneeAgentId === null) return "Unassigned";
+function assigneeChipLabel(filters: SearchFilters, lookups: FilterChipLookups, t = translate): string {
+  if (filters.assigneeAgentId === null) return t("searchUi.unassigned");
   if (typeof filters.assigneeAgentId === "string") {
-    return lookups.agentName(filters.assigneeAgentId) ?? "Agent";
+    return lookups.agentName(filters.assigneeAgentId) ?? t("searchUi.agent");
   }
   if (filters.assigneeUserId) {
-    if (filters.assigneeUserId === lookups.currentUserId) return "Me";
-    return lookups.userName(filters.assigneeUserId) ?? "User";
+    if (filters.assigneeUserId === lookups.currentUserId) return t("searchUi.me");
+    return lookups.userName(filters.assigneeUserId) ?? t("searchUi.user");
   }
-  return "Assignee";
+  return t("searchUi.assignee");
 }
 
 /** Removable chip descriptors for the active-filter row. */
-export function buildFilterChips(filters: SearchFilters, lookups: FilterChipLookups): FilterChip[] {
+export function buildFilterChips(filters: SearchFilters, lookups: FilterChipLookups, t = translate): FilterChip[] {
   const chips: FilterChip[] = [];
   for (const status of filters.status ?? []) {
     chips.push({
       id: `status:${status}`,
-      label: `Status: ${humanize(status)}`,
+      label: t("searchUi.chip.status", { value: t(`searchUi.status.${status}`) }),
       remove: (current) => {
         const next = { ...current };
         const remaining = (current.status ?? []).filter((value) => value !== status);
@@ -144,7 +145,7 @@ export function buildFilterChips(filters: SearchFilters, lookups: FilterChipLook
   for (const priority of filters.priority ?? []) {
     chips.push({
       id: `priority:${priority}`,
-      label: `Priority: ${humanize(priority)}`,
+      label: t("searchUi.chip.priority", { value: t(`searchUi.priority.${priority}`) }),
       remove: (current) => {
         const next = { ...current };
         const remaining = (current.priority ?? []).filter((value) => value !== priority);
@@ -157,7 +158,7 @@ export function buildFilterChips(filters: SearchFilters, lookups: FilterChipLook
   if (filters.assigneeAgentId !== undefined || filters.assigneeUserId) {
     chips.push({
       id: "assignee",
-      label: `Assignee: ${assigneeChipLabel(filters, lookups)}`,
+      label: t("searchUi.chip.assignee", { value: assigneeChipLabel(filters, lookups, t) }),
       remove: (current) => {
         const next = { ...current };
         delete next.assigneeAgentId;
@@ -169,7 +170,7 @@ export function buildFilterChips(filters: SearchFilters, lookups: FilterChipLook
   if (filters.projectId) {
     chips.push({
       id: "project",
-      label: `Project: ${lookups.projectName(filters.projectId) ?? "Project"}`,
+      label: t("searchUi.chip.project", { value: lookups.projectName(filters.projectId) ?? t("searchUi.project") }),
       remove: (current) => {
         const next = { ...current };
         delete next.projectId;
@@ -180,7 +181,7 @@ export function buildFilterChips(filters: SearchFilters, lookups: FilterChipLook
   if (filters.labelId) {
     chips.push({
       id: "label",
-      label: `Label: ${lookups.labelName(filters.labelId) ?? "Label"}`,
+      label: t("searchUi.chip.label", { value: lookups.labelName(filters.labelId) ?? t("searchUi.label") }),
       remove: (current) => {
         const next = { ...current };
         delete next.labelId;
@@ -191,7 +192,7 @@ export function buildFilterChips(filters: SearchFilters, lookups: FilterChipLook
   if (filters.updatedWithin) {
     chips.push({
       id: "updated",
-      label: `Updated: ${updatedWithinLabel(filters.updatedWithin)}`,
+      label: t("searchUi.chip.updated", { value: updatedWithinLabel(filters.updatedWithin, t) }),
       remove: (current) => {
         const next = { ...current };
         delete next.updatedWithin;
@@ -204,23 +205,23 @@ export function buildFilterChips(filters: SearchFilters, lookups: FilterChipLook
 }
 
 /** Human label for a backend zero-results loosen suggestion. */
-export function describeLoosenSuggestion(filterKey: string, values: string[], lookups: FilterChipLookups): string {
+export function describeLoosenSuggestion(filterKey: string, values: string[], lookups: FilterChipLookups, t = translate): string {
   switch (filterKey) {
     case "status":
-      return `Status: ${values.map(humanize).join(", ")}`;
+      return t("searchUi.chip.status", { value: values.map((value) => t(`searchUi.status.${value}`)).join(", ") });
     case "priority":
-      return `Priority: ${values.map(humanize).join(", ")}`;
+      return t("searchUi.chip.priority", { value: values.map((value) => t(`searchUi.priority.${value}`)).join(", ") });
     case "assigneeAgentId":
-      return `Assignee: ${values.map((id) => lookups.agentName(id) ?? "Agent").join(", ")}`;
+      return t("searchUi.chip.assignee", { value: values.map((id) => lookups.agentName(id) ?? t("searchUi.agent")).join(", ") });
     case "assigneeUserId":
-      return `Assignee: ${values.map((id) => (id === lookups.currentUserId ? "Me" : lookups.userName(id) ?? "User")).join(", ")}`;
+      return t("searchUi.chip.assignee", { value: values.map((id) => (id === lookups.currentUserId ? t("searchUi.me") : lookups.userName(id) ?? t("searchUi.user"))).join(", ") });
     case "projectId":
-      return `Project: ${values.map((id) => lookups.projectName(id) ?? "Project").join(", ")}`;
+      return t("searchUi.chip.project", { value: values.map((id) => lookups.projectName(id) ?? t("searchUi.project")).join(", ") });
     case "labelId":
-      return `Label: ${values.map((id) => lookups.labelName(id) ?? "Label").join(", ")}`;
+      return t("searchUi.chip.label", { value: values.map((id) => lookups.labelName(id) ?? t("searchUi.label")).join(", ") });
     case "updatedWithin":
     case "updatedAfter":
-      return "Updated window";
+      return t("searchUi.updatedWindow");
     default:
       return humanize(filterKey);
   }

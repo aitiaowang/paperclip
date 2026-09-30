@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { fuzzyTextMatchesQuery, normalizeSearchText, scoreFuzzyTextFields } from "@/lib/searchable-select";
 import { cn } from "@/lib/utils";
 import { useMobileEntityPickerViewportStyle } from "@/hooks/useMobileEntityPickerViewportStyle";
+import { useTranslation } from "@/i18n";
 
 export interface SearchableSelectOption<TValue extends string = string> {
   key: string;
@@ -94,9 +95,9 @@ export function SearchableSelect<
   groups,
   onValueChange,
   placeholder,
-  searchPlaceholder = "Search...",
-  emptyMessage = "No options found.",
-  loadingMessage = "Loading...",
+  searchPlaceholder,
+  emptyMessage,
+  loadingMessage,
   loading = false,
   disabled = false,
   className,
@@ -113,6 +114,7 @@ export function SearchableSelect<
   mobileTitle,
   createItem,
 }: SearchableSelectProps<TValue, TOption>) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const mobileViewportStyle = useMobileEntityPickerViewportStyle();
@@ -256,7 +258,7 @@ export function SearchableSelect<
           <button
             type="button"
             className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-            aria-label="Close selector"
+            aria-label={t("selectorExtra.closeSelector")}
             onClick={() => closePopover({ suppressTriggerFocus: true })}
           >
             <X className="size-5" />
@@ -266,7 +268,7 @@ export function SearchableSelect<
           <CommandInput
             value={query}
             onValueChange={setQuery}
-            placeholder={searchPlaceholder}
+            placeholder={searchPlaceholder ?? t("selectorExtra.search")}
           />
           <CommandList
             className="overscroll-contain touch-pan-y"
@@ -277,12 +279,12 @@ export function SearchableSelect<
             }}
           >
             {loading ? (
-              <div className="px-3 py-6 text-center text-sm text-muted-foreground">{loadingMessage}</div>
+              <div className="px-3 py-6 text-center text-sm text-muted-foreground">{loadingMessage ?? t("selectorExtra.loading")}</div>
             ) : (
               <>
-                {!hasOptions && !createItem ? <CommandEmpty>{emptyMessage}</CommandEmpty> : null}
+                {!hasOptions && !createItem ? <CommandEmpty>{emptyMessage ?? t("selectorExtra.noOptions")}</CommandEmpty> : null}
                 {!hasOptions && createItem ? (
-                  <div className="px-3 py-3 text-center text-xs text-muted-foreground">{emptyMessage}</div>
+                  <div className="px-3 py-3 text-center text-xs text-muted-foreground">{emptyMessage ?? t("selectorExtra.noOptions")}</div>
                 ) : null}
                 {filteredGroups.map((group) => (
                   <CommandGroup key={group.id} heading={group.label}>

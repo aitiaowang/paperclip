@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { useState } from "react";
+import { changeLocale } from "@/i18n";
 import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -13,6 +14,8 @@ import { AgentConfigForm, AdapterLoginPanel, subtractPersistedOverlay, type Adap
 import { defaultCreateValues } from "./agent-config-defaults";
 import { buildNewAgentHirePayload } from "../lib/new-agent-hire-payload";
 import { ApiError } from "../api/client";
+
+beforeEach(() => changeLocale("en"));
 
 const mockAgentsApi = vi.hoisted(() => ({
   adapterModels: vi.fn(),

@@ -1,5 +1,8 @@
 import { QueryClient } from "@tanstack/react-query";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { changeLocale } from "../i18n";
+
+beforeEach(() => changeLocale("en"));
 
 import { queryKeys } from "../lib/queryKeys";
 import {

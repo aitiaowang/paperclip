@@ -1,3 +1,5 @@
+import { useTranslation, i18n } from "@/i18n";
+import type { TFunction } from "i18next";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -119,40 +121,33 @@ export function buildCron(preset: SchedulePreset, hour: string, minute: string, 
   }
 }
 
-function describeSchedule(cron: string): string {
+function describeSchedule(cron: string, t: TFunction = i18n.t.bind(i18n)): string {
   const { preset, hour, minute, dayOfWeek, dayOfMonth } = parseCronToPreset(cron);
-  const hourLabel = HOURS.find((h) => h.value === hour)?.label ?? `${hour}`;
-  const timeStr = `${hourLabel.replace(/ (AM|PM)$/, "")}:${minute.padStart(2, "0")} ${hourLabel.match(/(AM|PM)$/)?.[0] ?? ""}`;
+  const timeStr = t(Number(hour) < 12 ? "routineControls.schedule.timeAm" : "routineControls.schedule.timePm", { hour: Number(hour) % 12 || 12, minute: minute.padStart(2, "0") });
 
   switch (preset) {
     case "every_minute":
-      return "Every minute";
+      return t("routineControls.schedule.preset.every_minute");
     case "every_hour":
-      return `Every hour at :${minute.padStart(2, "0")}`;
+      return t("routineControls.schedule.summary.hourly", { minute: minute.padStart(2, "0") });
     case "every_day":
-      return `Every day at ${timeStr}`;
+      return t("routineControls.schedule.summary.daily", { time: timeStr });
     case "weekdays":
-      return `Weekdays at ${timeStr}`;
+      return t("routineControls.schedule.summary.weekdays", { time: timeStr });
     case "weekly": {
       const day = DAYS_OF_WEEK.find((d) => d.value === dayOfWeek)?.label ?? dayOfWeek;
-      return `Every ${day} at ${timeStr}`;
+      return t("routineControls.schedule.summary.weekly", { day: t(`routineControls.schedule.day.${dayOfWeek}`, { defaultValue: day }), time: timeStr });
     }
     case "monthly":
-      return `Monthly on the ${dayOfMonth}${ordinalSuffix(Number(dayOfMonth))} at ${timeStr}`;
+      return t("routineControls.schedule.summary.monthly", { day: dayOfMonth, time: timeStr });
     case "custom":
-      return cron || "No schedule set";
+      return cron || t("routineControls.schedule.none");
   }
-}
-
-function ordinalSuffix(n: number): string {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return s[(v - 20) % 10] || s[v] || s[0];
 }
 
 export { describeSchedule };
 
-export function getScheduleCronValidation(cron: string): {
+export function getScheduleCronValidation(cron: string, t: TFunction = i18n.t.bind(i18n)): {
   valid: boolean;
   message: string;
   nextFires: Date[];
@@ -161,7 +156,7 @@ export function getScheduleCronValidation(cron: string): {
   if (!trimmed) {
     return {
       valid: false,
-      message: "Enter a 5-field cron expression.",
+      message: t("routineControls.schedule.validation.empty"),
       nextFires: [],
     };
   }
@@ -170,7 +165,7 @@ export function getScheduleCronValidation(cron: string): {
   if (fields.length !== 5) {
     return {
       valid: false,
-      message: `Use exactly 5 fields; this has ${fields.length}.`,
+      message: t("routineControls.schedule.validation.fields", { count: fields.length }),
       nextFires: [],
     };
   }
@@ -178,7 +173,7 @@ export function getScheduleCronValidation(cron: string): {
   if (!parseCronExpression(trimmed)) {
     return {
       valid: false,
-      message: "Cron fields must use valid numbers, ranges, lists, wildcards, or steps.",
+      message: t("routineControls.schedule.validation.invalid"),
       nextFires: [],
     };
   }
@@ -186,7 +181,7 @@ export function getScheduleCronValidation(cron: string): {
   const nextFires = nextCronFires(trimmed, 3, { timeZone: "UTC" });
   return {
     valid: true,
-    message: nextFires.length > 0 ? "Valid cron." : "Valid cron, but no upcoming fires were found.",
+    message: nextFires.length > 0 ? t("routineControls.schedule.validation.valid") : t("routineControls.schedule.validation.noFires"),
     nextFires,
   };
 }
@@ -200,6 +195,7 @@ export function ScheduleEditor({
   onChange: (cron: string) => void;
   onValidityChange?: (valid: boolean) => void;
 }) {
+  const { t, i18n } = useTranslation();
   const parsed = useMemo(() => parseCronToPreset(value), [value]);
   const [preset, setPreset] = useState<SchedulePreset>(parsed.preset);
   const [hour, setHour] = useState(parsed.hour);
@@ -207,7 +203,7 @@ export function ScheduleEditor({
   const [dayOfWeek, setDayOfWeek] = useState(parsed.dayOfWeek);
   const [dayOfMonth, setDayOfMonth] = useState(parsed.dayOfMonth);
   const [customCron, setCustomCron] = useState(preset === "custom" ? value : "");
-  const customValidation = useMemo(() => getScheduleCronValidation(customCron), [customCron]);
+  const customValidation = useMemo(() => getScheduleCronValidation(customCron, t), [customCron, t]);
 
   useEffect(() => {
     onValidityChange?.(preset !== "custom" || customValidation.valid);
@@ -247,13 +243,13 @@ export function ScheduleEditor({
   return (
     <div className="space-y-3">
       <Select value={preset} onValueChange={(v) => handlePresetChange(v as SchedulePreset)}>
-        <SelectTrigger className="w-full" aria-label="Schedule frequency">
-          <SelectValue placeholder="Choose frequency..." />
+        <SelectTrigger className="w-full" aria-label={t("routineControls.schedule.frequency")}>
+          <SelectValue placeholder={t("routineControls.schedule.choose")} />
         </SelectTrigger>
         <SelectContent>
           {PRESETS.map((p) => (
             <SelectItem key={p.value} value={p.value}>
-              {p.label}
+              {t(`routineControls.schedule.preset.${p.value}`)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -270,19 +266,19 @@ export function ScheduleEditor({
               // their submit affordance in the same render. Relying solely on the
               // effect below leaves a one-tick window where an invalid draft still
               // reads as valid to the parent.
-              const nextValidation = getScheduleCronValidation(nextCron);
+              const nextValidation = getScheduleCronValidation(nextCron, t);
               onValidityChange?.(nextValidation.valid);
               if (nextValidation.valid) {
                 emitChange("custom", hour, minute, dayOfWeek, dayOfMonth, nextCron);
               }
             }}
             placeholder="0 10 * * *"
-            aria-label="Cron expression"
+            aria-label={t("routineControls.schedule.expression")}
             aria-invalid={!customValidation.valid}
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            Five fields: minute hour day-of-month month day-of-week
+            {t("routineControls.schedule.fields")}
           </p>
           <p
             className={customValidation.valid ? "text-xs text-muted-foreground" : "text-xs text-destructive"}
@@ -290,7 +286,7 @@ export function ScheduleEditor({
           >
             {customValidation.message}
             {customValidation.valid && customValidation.nextFires.length > 0
-              ? ` Next: ${customValidation.nextFires.map((fire) => fire.toLocaleString()).join(", ")}.`
+              ? t("routineControls.schedule.next", { times: customValidation.nextFires.map((fire) => fire.toLocaleString(i18n.resolvedLanguage)).join(", ") })
               : null}
           </p>
         </div>
@@ -298,7 +294,7 @@ export function ScheduleEditor({
         <div className="flex flex-wrap items-center gap-2">
           {preset !== "every_minute" && preset !== "every_hour" && (
             <>
-              <span className="text-sm text-muted-foreground">at</span>
+              <span className="text-sm text-muted-foreground">{t("routineControls.schedule.at")}</span>
               <Select
                 value={hour}
                 onValueChange={(h) => {
@@ -312,7 +308,7 @@ export function ScheduleEditor({
                 <SelectContent>
                   {HOURS.map((h) => (
                     <SelectItem key={h.value} value={h.value}>
-                      {h.label}
+                      {t(Number(h.value) < 12 ? "routineControls.schedule.hourAm" : "routineControls.schedule.hourPm", { hour: Number(h.value) % 12 || 12 })}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -341,7 +337,7 @@ export function ScheduleEditor({
 
           {preset === "every_hour" && (
             <>
-              <span className="text-sm text-muted-foreground">at minute</span>
+              <span className="text-sm text-muted-foreground">{t("routineControls.schedule.atMinute")}</span>
               <Select
                 value={minute}
                 onValueChange={(m) => {
@@ -365,7 +361,7 @@ export function ScheduleEditor({
 
           {preset === "weekly" && (
             <>
-              <span className="text-sm text-muted-foreground">on</span>
+              <span className="text-sm text-muted-foreground">{t("routineControls.schedule.on")}</span>
               <div className="flex gap-1">
                 {DAYS_OF_WEEK.map((d) => (
                   <Button
@@ -380,7 +376,7 @@ export function ScheduleEditor({
                       emitChange(preset, hour, minute, d.value, dayOfMonth, customCron);
                     }}
                   >
-                    {d.label}
+                    {t(`routineControls.schedule.day.${d.value}`)}
                   </Button>
                 ))}
               </div>
@@ -389,7 +385,7 @@ export function ScheduleEditor({
 
           {preset === "monthly" && (
             <>
-              <span className="text-sm text-muted-foreground">on day</span>
+              <span className="text-sm text-muted-foreground">{t("routineControls.schedule.onDay")}</span>
               <Select
                 value={dayOfMonth}
                 onValueChange={(dom) => {

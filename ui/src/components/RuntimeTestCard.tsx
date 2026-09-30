@@ -1,3 +1,4 @@
+import { useTranslation } from "../i18n";
 import {
   CircleCheck,
   CircleAlert,
@@ -12,29 +13,29 @@ export type TestState = "idle" | "running" | "pass" | "fail";
 
 const copy = {
   idle: {
-    title: "Test your agent",
-    description: "Check that your runtime and model can respond.",
-    action: "Run test",
+    title: "newAgentSetup.test.idle.title",
+    description: "newAgentSetup.test.idle.description",
+    action: "newAgentSetup.test.idle.action",
   },
   running: {
-    title: "Testing connection",
-    description: "Checking the runtime and waiting for a model response…",
-    action: "Testing…",
+    title: "newAgentSetup.test.running.title",
+    description: "newAgentSetup.test.running.description",
+    action: "newAgentSetup.test.running.action",
   },
   pass: {
-    title: "Connection successful",
-    description: "Your runtime checks passed. Review the details below.",
-    action: "Test again",
+    title: "newAgentSetup.test.pass.title",
+    description: "newAgentSetup.test.pass.description",
+    action: "newAgentSetup.test.again",
   },
   warn: {
-    title: "Connection needs attention",
-    description: "Review the test details before running your agent.",
-    action: "Test again",
+    title: "newAgentSetup.test.warn.title",
+    description: "newAgentSetup.test.warn.description",
+    action: "newAgentSetup.test.again",
   },
   fail: {
-    title: "Couldn't connect",
-    description: "Check your model and provider connection, then try again.",
-    action: "Retry test",
+    title: "newAgentSetup.test.fail.title",
+    description: "newAgentSetup.test.fail.description",
+    action: "newAgentSetup.test.fail.action",
   },
 } as const;
 
@@ -51,6 +52,7 @@ export function RuntimeTestCard({
   onTest: () => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   const content = copy[state];
   const Icon =
     state === "running"
@@ -62,7 +64,7 @@ export function RuntimeTestCard({
           : Play;
   return (
     <section
-      aria-label="Runtime test"
+      aria-label={t("newAgentSetup.test.aria")}
       className="rounded-lg border border-border bg-card"
     >
       <div className="flex items-start gap-3 p-4 sm:items-center">
@@ -90,9 +92,9 @@ export function RuntimeTestCard({
             aria-atomic="true"
             className="min-w-0 space-y-1"
           >
-            <h3 className="text-sm font-medium">{content.title}</h3>
+            <h3 className="text-sm font-medium">{t(content.title)}</h3>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              {state === "fail" && error ? error : content.description}
+              {state === "fail" && error ? error : t(content.description)}
             </p>
           </div>
           <Button
@@ -103,7 +105,7 @@ export function RuntimeTestCard({
             disabled={disabled || state === "running"}
             onClick={onTest}
           >
-            {content.action}
+            {t(content.action)}
           </Button>
         </div>
       </div>
@@ -117,7 +119,7 @@ export function RuntimeTestCard({
               aria-hidden="true"
               className="size-3 transition-transform group-open:rotate-90"
             />
-            Test details
+            {t("newAgentSetup.test.details")}
           </summary>
           <ul className="space-y-3 px-4 pb-4">
             {result.checks.map((check) => (

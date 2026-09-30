@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Agent, Environment, EnvironmentCapabilities } from "@paperclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "../context/ToastContext";
+import { changeLocale } from "@/i18n";
 import type { BuiltInAgentState } from "../api/builtInAgents";
 import { Agents } from "./Agents";
 import { Agents as ProductionAgents } from "./Agents.production";
@@ -300,6 +301,7 @@ describe("Agents", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
+    changeLocale("en");
     mockRouterState.pathname = "/agents/all";
     mockRouterState.navigate.mockClear();
     container = document.createElement("div");
@@ -357,6 +359,37 @@ describe("Agents", () => {
     container.remove();
     document.body.innerHTML = "";
     vi.clearAllMocks();
+    changeLocale("zh-CN");
+  });
+
+  it.each([
+    ["streamlined", Agents],
+    ["production", ProductionAgents],
+  ] as const)("updates %s roster labels in place when the language changes", async (_mode, AgentList) => {
+    root = createRoot(container);
+    await act(async () => {
+      root!.render(
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <AgentList />
+          </ToastProvider>
+        </QueryClientProvider>,
+      );
+    });
+    await flushReact();
+    await flushReact();
+    expect(container.textContent).toContain("New Agent");
+    expect(container.querySelector('[aria-label="List view"]')).not.toBeNull();
+    await act(async () => { changeLocale("zh-CN"); });
+    await flushReact();
+    expect(container.textContent).toContain("新建智能体");
+    expect(container.textContent).toContain("全部");
+    expect(container.querySelector('[aria-label="列表视图"]')).not.toBeNull();
+    expect(container.textContent).toContain("Alpha");
+    await act(async () => { changeLocale("en"); });
+    await flushReact();
+    expect(container.textContent).toContain("New Agent");
+    expect(container.querySelector('[aria-label="List view"]')).not.toBeNull();
   });
 
   it.each([

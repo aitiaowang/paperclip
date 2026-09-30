@@ -2,7 +2,11 @@
 
 import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { changeLocale } from "@/i18n";
+
+beforeEach(() => changeLocale("en"));
+afterEach(() => changeLocale("zh-CN"));
 
 import type React from "react";
 import {

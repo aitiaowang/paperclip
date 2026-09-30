@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { i18n } from "@/i18n";
 import type { CompanySecret } from "@paperclipai/shared";
 import type { MyUserSecretEntry } from "../api/secrets";
 import {
@@ -28,6 +29,12 @@ const personal = (key = "ANTHROPIC_API_KEY.setup.abc", overrides = {}) =>
     secret: secret({ scope: "user" }),
   }) as MyUserSecretEntry;
 describe("saved provider keys", () => {
+  it("translates ownership labels while preserving account names and credential references", () => {
+    const english = savedProviderKeys("c1", "ANTHROPIC_API_KEY", [personal()], [secret()]);
+    const chinese = savedProviderKeys("c1", "ANTHROPIC_API_KEY", [personal()], [secret()], i18n.getFixedT("zh-CN"));
+    expect(chinese.map(option => option.label)).toEqual(["My Claude（你的密钥）", "Claude（组织密钥）"]);
+    expect(chinese.map(({ label: _label, ...option }) => option)).toEqual(english.map(({ label: _label, ...option }) => option));
+  });
   it("reuses canonical and setup keys with references, including normalized organization keys", () => {
     expect(
       savedProviderKeys(

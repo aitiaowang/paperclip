@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
+import { changeLocale } from "@/i18n";
+
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { appearanceForPalette, agentAvatarUrl, resolveAgentAppearance } from "@paperclipai/shared";
 import { ManagedRoutinesList } from "./ManagedRoutinesList";
 
@@ -22,3 +24,7 @@ describe("routine agent identities", () => {
     expect(avatarSrc(markup)).toBe(agentAvatarUrl(resolveAgentAppearance(null, "agent-one"), 16));
   });
 });
+
+
+beforeEach(() => changeLocale("en"));
+afterEach(() => changeLocale("zh-CN"));

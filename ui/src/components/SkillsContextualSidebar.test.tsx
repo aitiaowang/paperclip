@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SkillsContextualSidebar } from "./SkillsContextualSidebar";
 import { contextualSidebarStyles } from "./contextual-sidebar-styles";
+import { changeLocale } from "@/i18n";
 
 const sidebarNavItemMock = vi.hoisted(() => vi.fn());
 const mockLocation = vi.hoisted(() => ({ pathname: "/PAP/skills", search: "" }));
@@ -34,6 +35,7 @@ describe("SkillsContextualSidebar", () => {
   let container: HTMLDivElement;
 
   beforeEach(() => {
+    changeLocale("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     mockLocation.pathname = "/PAP/skills";
@@ -110,6 +112,22 @@ describe("SkillsContextualSidebar", () => {
 
     expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("My Skills");
 
+    act(() => root.unmount());
+  });
+
+  it("updates navigation labels without changing legacy queries or destinations", () => {
+    mockLocation.search = "?tab=bundled";
+    const root = render();
+    const hrefs = Array.from(container.querySelectorAll("a"), (link) => link.getAttribute("href"));
+    act(() => changeLocale("zh-CN"));
+    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("发现");
+    expect(container.textContent).toContain("我的技能");
+    expect(container.textContent).toContain("你创建、编辑和测试的技能。");
+    expect(container.querySelector('nav[aria-label="技能"]')).not.toBeNull();
+    expect(Array.from(container.querySelectorAll("a"), (link) => link.getAttribute("href"))).toEqual(hrefs);
+    expect(mockLocation.search).toBe("?tab=bundled");
+    act(() => changeLocale("en"));
+    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("Discover");
     act(() => root.unmount());
   });
 });

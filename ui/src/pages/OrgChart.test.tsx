@@ -4,6 +4,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { changeLocale } from "@/i18n";
 import { queryKeys } from "@/lib/queryKeys";
 import { OrgChart } from "./OrgChart";
 
@@ -133,6 +134,7 @@ describe("OrgChart mobile gestures", () => {
   let viewportHeight: number;
 
   beforeEach(() => {
+    changeLocale("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     queryClient = new QueryClient({
@@ -193,6 +195,7 @@ describe("OrgChart mobile gestures", () => {
     document.body.innerHTML = "";
     vi.restoreAllMocks();
     vi.clearAllMocks();
+    changeLocale("zh-CN");
   });
 
   async function renderOrgChart() {

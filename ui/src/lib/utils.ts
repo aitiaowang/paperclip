@@ -1,3 +1,4 @@
+import { getLocale, t } from "../i18n";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { deriveAgentUrlKey, deriveProjectUrlKey, normalizeProjectUrlKey, hasNonAsciiContent } from "@paperclipai/shared";
@@ -34,11 +35,11 @@ export function asFiniteNumber(value: unknown, fallback: number) {
 }
 
 export function formatCents(cents: number): string {
-  return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `$${(cents / 100).toLocaleString(getLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function formatNumber(n: number): string {
-  return n.toLocaleString("en-US");
+  return n.toLocaleString(getLocale());
 }
 
 /**
@@ -47,11 +48,11 @@ export function formatNumber(n: number): string {
  */
 export function formatProjectBudget(budget: { amountCents: number; windowKind: string }): string {
   const amount = formatCents(budget.amountCents);
-  return budget.windowKind === "calendar_month_utc" ? `${amount}/mo` : amount;
+  return budget.windowKind === "calendar_month_utc" ? t("formatUi.monthly", { amount }) : amount;
 }
 
 export function formatDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString("en-US", {
+  return new Date(date).toLocaleDateString(getLocale(), {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -62,7 +63,7 @@ export function formatDateTime(
   date: Date | string,
   options: { includeSeconds?: boolean } = {},
 ): string {
-  return new Date(date).toLocaleString("en-US", {
+  return new Date(date).toLocaleString(getLocale(), {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -73,7 +74,7 @@ export function formatDateTime(
 }
 
 export function formatShortDate(date: Date | string): string {
-  return new Date(date).toLocaleString("en-US", {
+  return new Date(date).toLocaleString(getLocale(), {
     month: "short",
     day: "numeric",
   });
@@ -83,13 +84,13 @@ export function relativeTime(date: Date | string): string {
   const now = Date.now();
   const then = new Date(date).getTime();
   const diffSec = Math.round((now - then) / 1000);
-  if (diffSec < 60) return "just now";
+  if (diffSec < 60) return t("formatUi.now");
   const diffMin = Math.round(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 60) return t("formatUi.minutesAgo", { count: diffMin });
   const diffHr = Math.round(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffHr < 24) return t("formatUi.hoursAgo", { count: diffHr });
   const diffDay = Math.round(diffHr / 24);
-  if (diffDay < 30) return `${diffDay}d ago`;
+  if (diffDay < 30) return t("formatUi.daysAgo", { count: diffDay });
   return formatDate(date);
 }
 

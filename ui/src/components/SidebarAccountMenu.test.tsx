@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { i18n } from "../i18n";
+
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -81,7 +83,8 @@ async function flushReact() {
 describe("SidebarAccountMenu", () => {
   let container: HTMLDivElement;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     mockAuthApi.getSession.mockResolvedValue({
@@ -221,6 +224,36 @@ describe("SidebarAccountMenu", () => {
       await act(() => root.unmount());
       queryClient.clear();
     });
+  });
+
+  it.each([SidebarAccountMenu, ProductionSidebarAccountMenu])("localizes the default board identity while preserving custom names (%#)", async (AccountMenu) => {
+    mockAuthApi.getSession.mockResolvedValue({
+      session: { id: "local-session", userId: "local-board" },
+      user: { id: "local-board", name: "Board", email: "local@paperclip.local" },
+    });
+    const root = createRoot(container);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    await act(async () => {
+      root.render(<QueryClientProvider client={queryClient}><TooltipProvider><AccountMenu open /></TooltipProvider></QueryClientProvider>);
+    });
+    await flushReact();
+    await act(async () => { await i18n.changeLanguage("zh-CN"); });
+    expect(container.querySelector('button[aria-label="打开账户菜单"]')?.textContent).toContain("董事会");
+    expect(document.body.textContent).toContain("查看个人资料");
+    await act(async () => { await i18n.changeLanguage("en"); });
+    expect(container.querySelector('button[aria-label="Open account menu"]')?.textContent).toContain("Board");
+    await act(async () => {
+      await i18n.changeLanguage("zh-CN");
+      queryClient.setQueryData(queryKeys.auth.session, { user: { id: "local-board", name: "我的工作室" } });
+    });
+    expect(container.textContent).toContain("我的工作室");
+    await act(async () => {
+      queryClient.setQueryData(queryKeys.auth.session, { user: { id: "custom-user", name: "Board" } });
+    });
+    await flushReact();
+    expect(container.querySelector('button[aria-label="打开账户菜单"]')?.textContent).toContain("Board");
+    await act(async () => root.unmount());
+    queryClient.clear();
   });
 
   it("shares the nav background without separator borders", async () => {

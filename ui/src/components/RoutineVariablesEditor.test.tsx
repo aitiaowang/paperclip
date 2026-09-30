@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { changeLocale } from "@/i18n";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import type { RoutineVariable } from "@paperclipai/shared";
@@ -53,6 +54,11 @@ describe("RoutineVariablesEditor", () => {
     const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]');
     expect(dateInput?.value).toBe("2026-06-26");
 
+    flushUi(() => changeLocale("zh-CN"));
+    expect(container.textContent).toContain("默认值");
+    expect(container.textContent).toContain("日期");
+    expect(dateInput?.value).toBe("2026-06-26");
+
     flushUi(() => root.unmount());
   });
 
@@ -73,6 +79,14 @@ describe("RoutineVariablesEditor", () => {
     expect(document.body.textContent).toContain("Variable names ending in capital Date");
     expect(document.body.textContent).toContain("startDate");
 
+    flushUi(() => changeLocale("zh-CN"));
+    expect(document.body.textContent).toContain("例行任务变量");
+    expect(document.body.textContent).toContain("{{variable_name}}");
+    expect(document.body.textContent).toContain("startDate");
+
     flushUi(() => root.unmount());
   });
 });
+
+beforeEach(() => { changeLocale("en"); });
+afterEach(() => { changeLocale("zh-CN"); });

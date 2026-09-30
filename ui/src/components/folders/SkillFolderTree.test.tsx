@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FolderListResult } from "@paperclipai/shared";
 import { SkillFolderRail } from "./SkillFolderTree";
+import { changeLocale } from "@/i18n";
 
 function pointerEvent(type: string, clientX: number) {
   const event = new MouseEvent(type, { bubbles: true, clientX });
@@ -59,6 +60,7 @@ describe("SkillFolderRail", () => {
 
   beforeEach(() => {
     window.localStorage.clear();
+    changeLocale("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -127,5 +129,24 @@ describe("SkillFolderRail", () => {
     expect(onSelect).toHaveBeenCalledWith("my-root");
     expect(container.textContent).toContain("Ada");
     expect(container.querySelector('[aria-label="Collapse folder"]')).not.toBeNull();
+  });
+
+  it("switches system labels while preserving expanded folders, names, and IDs", () => {
+    const myLabel = Array.from(container.querySelectorAll("button"))
+      .find((button) => button.textContent?.includes("My Skills"));
+    flushSync(() => myLabel?.click());
+    onSelect.mockClear();
+    flushSync(() => changeLocale("zh-CN"));
+    expect(container.textContent).toContain("我的技能");
+    expect(container.textContent).toContain("全部技能");
+    expect(container.textContent).toContain("Ada");
+    expect(container.querySelector('[aria-label="收起文件夹"]')).not.toBeNull();
+    expect(onSelect).not.toHaveBeenCalled();
+    const ada = Array.from(container.querySelectorAll("button"))
+      .find((button) => button.textContent === "Ada");
+    flushSync(() => ada?.click());
+    expect(onSelect).toHaveBeenCalledWith("personal-root");
+    flushSync(() => changeLocale("en"));
+    expect(container.textContent).toContain("My Skills");
   });
 });

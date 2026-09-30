@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { flushSync } from "react-dom";
+import { changeLocale } from "@/i18n";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentProviderConnection } from "./AgentProviderConnection";
 import { ApiError } from "@/api/client";
 const mocks = vi.hoisted(() => ({
@@ -37,11 +38,13 @@ vi.mock("../AgentConfigForm", () => ({
 let root: Root;
 let host: HTMLDivElement;
 let client: QueryClient;
+beforeEach(() => changeLocale("en"));
 afterEach(() => {
   flushSync(() => root?.unmount());
   host?.remove();
   client?.clear();
   vi.resetAllMocks();
+  changeLocale("zh-CN");
 });
 async function mount(
   adapterType: "claude_local" | "codex_local" = "claude_local",
@@ -148,6 +151,27 @@ function openProvider() {
   );
 }
 describe("AgentProviderConnection reuse", () => {
+  it("switches language without clearing the entered API key or changing its credential payload", async () => {
+    const onComplete = vi.fn();
+    const intent = { provider: "anthropic" as const, method: "subscription" as const, name: "User account", ownership: "personal" as const, agentIds: [], allAgents: true };
+    await mount("claude_local", false, true, false, false, false, { intent, initialMethod: "api_key", onComplete });
+    openProvider();
+    const input = host.querySelector<HTMLInputElement>('input[type="password"]')!;
+    flushSync(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, "fixture-api-key");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    flushSync(() => changeLocale("zh-CN"));
+    expect(host.textContent).toContain("提供你的 Claude API 密钥以连接");
+    expect(input.value).toBe("fixture-api-key");
+    expect(host.querySelector('input[aria-label="API 密钥"]')).toBe(input);
+    expect(managedApi.create).not.toHaveBeenCalled();
+    flushSync(() => changeLocale("en"));
+    expect(input.value).toBe("fixture-api-key");
+    click("Connect");
+    await vi.waitFor(() => expect(onComplete).toHaveBeenCalled());
+    expect(managedApi.create).toHaveBeenCalledWith("c1", { ...intent, method: "api_key", apiKey: "fixture-api-key" });
+  });
   it.each(["claude_local", "codex_local"] as const)("does not offer a server-host command when health disables local login: %s", async adapterType => {
     const onComplete = vi.fn();
     const intent = { provider: adapterType === "claude_local" ? "anthropic" as const : "openai" as const, method: "subscription" as const, name: "Hosted account", ownership: "personal" as const, agentIds: [], allAgents: false };

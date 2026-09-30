@@ -2,10 +2,13 @@
 
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TeamCard } from "./TeamCatalog";
 import { onboardingTeams } from "./TeamCatalog.fixtures";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { changeLocale } from "../i18n";
+
+beforeEach(() => changeLocale("en"));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -46,6 +49,20 @@ describe("TeamCard", () => {
     expect(text).toContain(`${team.counts.agents} agents`);
     expect(text).toContain(`${team.counts.projects} project`);
     for (const tag of team.tags) expect(text).toContain(tag);
+    cleanup();
+  });
+
+  it("updates counts in place and preserves catalog names, descriptions, and tags", async () => {
+    changeLocale("zh-CN");
+    const team = onboardingTeams[0];
+    const { container, root, cleanup } = render(null);
+    await act(async () => root.render(<TooltipProvider><TeamCard team={team} /></TooltipProvider>));
+    expect(container.textContent).toContain(`${team.counts.agents} 个智能体`);
+    expect(container.textContent).toContain(team.name);
+    expect(container.textContent).toContain(team.description);
+    await act(async () => changeLocale("en"));
+    expect(container.textContent).toContain(`${team.counts.agents} agents`);
+    for (const tag of team.tags) expect(container.textContent).toContain(tag);
     cleanup();
   });
 

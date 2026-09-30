@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { StrictMode } from "react";
+import { changeLocale } from "@/i18n";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -11,6 +12,7 @@ vi.mock("@/api/ai-connections", () => ({ aiConnectionsApi: api }));
 let root: ReturnType<typeof createRoot>;
 let host: HTMLDivElement;
 beforeEach(() => {
+  changeLocale("en");
   vi.resetAllMocks();
   api.startLocalLogin.mockImplementation(async () => ({ sessionId: "attempt-1", command: "isolated codex login", expiresAt: "2099-01-01T00:00:00Z" }));
   api.checkLocalLogin.mockResolvedValue({ status: "sign_in_required" });

@@ -1,3 +1,4 @@
+import { useTranslation } from "@/i18n";
 import { useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { createPortal } from "react-dom";
@@ -16,7 +17,7 @@ export function SetupWizardSidebar() {
 
 export function SetupWizardNavigation({
   labels,
-  ariaLabel = "Setup progress",
+  ariaLabel,
   takeover = false,
   inline = false,
   step,
@@ -34,6 +35,7 @@ export function SetupWizardNavigation({
   onSelect: (step: number) => void;
 }) {
   const sidebar = useSetupWizardSidebar();
+  const { t } = useTranslation();
   const { isMobile, setSidebarOpen } = useSidebar();
   const setActive = sidebar?.setActive;
   useEffect(() => {
@@ -42,7 +44,7 @@ export function SetupWizardNavigation({
     return () => setActive(false);
   }, [takeover, setActive]);
   const navigation = (
-    <nav aria-label={ariaLabel}>
+    <nav aria-label={ariaLabel ?? t("routineControls.setupProgress")}>
       <ol className="text-sm">
         {labels.map((label, index) => (
           <li key={label}>
@@ -90,8 +92,9 @@ export function SetupWizardSidebarOutlet({ children }: { children: ReactNode }) 
 
 /** Each step owns one footer row; secondary actions stay with the primary action. */
 export function SetupWizardFooter({ onSaveExit, children, disabled = false }: { onSaveExit: () => void; children: ReactNode; disabled?: boolean }) {
+  const { t } = useTranslation();
   return <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-    <Button type="button" variant="ghost" className="text-muted-foreground" onClick={onSaveExit} disabled={disabled}>Save &amp; exit</Button>
+    <Button type="button" variant="ghost" className="text-muted-foreground" onClick={onSaveExit} disabled={disabled}>{t("routineControls.saveExit")}</Button>
     <div className="ml-auto flex flex-wrap items-center gap-2">{children}</div>
   </div>;
 }

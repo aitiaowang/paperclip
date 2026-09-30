@@ -8,6 +8,7 @@ import type { Project } from "@paperclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "../context/ToastContext";
 import { Projects } from "./Projects";
+import { changeLocale } from "../i18n";
 
 const mockProjectsApi = vi.hoisted(() => ({
   list: vi.fn(),
@@ -115,6 +116,7 @@ describe("Projects", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
+    changeLocale("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     root = null;
@@ -228,6 +230,23 @@ describe("Projects", () => {
     expect(content.indexOf("My Projects")).toBeLessThan(content.indexOf("Charlie"));
     expect(content.indexOf("Charlie")).toBeLessThan(content.indexOf("Alpha"));
     expect(content.indexOf("Alpha")).toBeLessThan(content.indexOf("Other Projects"));
+  });
+
+  it("switches language with an open sort menu without losing order or project data", async () => {
+    await renderProjects();
+    await openSortMenu();
+    await chooseSortField("Updated");
+    await act(() => changeLocale("zh-CN"));
+    await flushReact();
+    expect(container.textContent).toContain("我的项目");
+    expect(container.textContent).toContain("排序：更新时间");
+    expect(document.body.textContent).toContain("目标日期");
+    expect(container.textContent!.indexOf("Charlie")).toBeLessThan(container.textContent!.indexOf("Alpha"));
+    expect(container.textContent).toContain("First project");
+    expect(container.textContent).toContain("进行中");
+    await act(() => changeLocale("en"));
+    expect(container.textContent).toContain("Sort: Updated");
+    expect(container.textContent).toContain("My Projects");
   });
 
   it("reserves description line height for projects without descriptions", async () => {

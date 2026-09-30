@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { changeLocale } from "@/i18n";
+
 import { act } from "react";
 import type { ComponentProps } from "react";
 import { createRoot } from "react-dom/client";
@@ -166,20 +168,27 @@ function makeQueryClient() {
 
 describe("RoutineHistoryTab", () => {
   let container: HTMLDivElement;
+  const mountedRoots: ReturnType<typeof createRoot>[] = [];
 
   beforeEach(() => {
+    changeLocale("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     vi.clearAllMocks();
     toastSpy.mockReset();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await act(async () => {
+      for (const root of mountedRoots.splice(0)) root.unmount();
+    });
     container.remove();
+    changeLocale("zh-CN");
   });
 
   async function render(props: Partial<Parameters<typeof RoutineHistoryTab>[0]> = {}) {
     const root = createRoot(container);
+    mountedRoots.push(root);
     const queryClient = makeQueryClient();
     const routine = props.routine ?? createRoutine();
     await act(async () => {
@@ -212,6 +221,56 @@ describe("RoutineHistoryTab", () => {
     });
     expect(container.textContent).toContain("No edits yet");
     expect(container.textContent).toContain("Revision 1 is the only history");
+  });
+
+  it("updates comparison labels in place and preserves the selected revision", async () => {
+    mockRoutinesApi.listRevisions.mockResolvedValue([
+      createRevision({ id: "revision-2", revisionNumber: 2 }),
+      createRevision({ id: "revision-1", revisionNumber: 1, snapshot: snapshotV1({ status: "paused" }) }),
+    ]);
+    await render();
+    await act(async () => { (container.querySelector('[data-testid="revision-row-1"]') as HTMLButtonElement).click(); });
+    await flush();
+    await act(async () => {
+      Array.from(container.querySelectorAll("button")).find(button => button.textContent === "Compare with current")!.click();
+    });
+    await flush();
+    expect(container.querySelector('[data-testid="dialog"]')?.textContent).toContain("Status");
+    const selections = Array.from(container.querySelectorAll("select")).map(select => select.value);
+    await act(async () => { changeLocale("zh-CN"); });
+    await flush();
+    expect(container.querySelector('[data-testid="dialog"]')?.textContent).toContain("字段变更");
+    expect(container.querySelector('[data-testid="dialog"]')?.textContent).toContain("状态");
+    expect(container.querySelector('[data-testid="dialog"]')?.textContent).toContain("暂停");
+    expect(Array.from(container.querySelectorAll("select")).map(select => select.value)).toEqual(selections);
+    expect(mockRoutinesApi.restoreRevision).not.toHaveBeenCalled();
+    await act(async () => { changeLocale("en"); });
+    await flush();
+    expect(container.querySelector('[data-testid="dialog"]')?.textContent).toContain("Status");
+  });
+
+  it("preserves an entered restore summary while the open dialog changes language", async () => {
+    mockRoutinesApi.listRevisions.mockResolvedValue([
+      createRevision({ id: "revision-2", revisionNumber: 2 }),
+      createRevision({ id: "revision-1", revisionNumber: 1 }),
+    ]);
+    await render();
+    await act(async () => { (container.querySelector('[data-testid="revision-row-1"]') as HTMLButtonElement).click(); });
+    await act(async () => {
+      Array.from(container.querySelectorAll("button")).find(button => button.textContent === "Restore as new revision")!.click();
+    });
+    const summary = container.querySelector<HTMLInputElement>("#restore-change-summary")!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(summary, "Keep this user summary 原文");
+      summary.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => { changeLocale("zh-CN"); });
+    expect(container.querySelector('[data-testid="dialog"]')?.textContent).toContain("恢复");
+    expect(container.querySelector<HTMLInputElement>("#restore-change-summary")?.value).toBe("Keep this user summary 原文");
+    await act(async () => { changeLocale("en"); });
+    expect(container.querySelector('[data-testid="dialog"]')?.textContent).toContain("Restore");
+    expect(container.querySelector<HTMLInputElement>("#restore-change-summary")?.value).toBe("Keep this user summary 原文");
+    expect(mockRoutinesApi.restoreRevision).not.toHaveBeenCalled();
   });
 
   it("renders the revision list with current and historical pills", async () => {

@@ -1,3 +1,4 @@
+import { changeLocale } from "../i18n";
 // @vitest-environment jsdom
 
 import { flushSync } from "react-dom";
@@ -21,6 +22,7 @@ describe("StarToggle", () => {
   let root: ReturnType<typeof createRoot> | null;
 
   beforeEach(() => {
+    changeLocale("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     root = null;

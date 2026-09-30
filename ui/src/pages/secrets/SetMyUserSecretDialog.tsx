@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "@/i18n";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CompanySecret, UserSecretDefinition } from "@paperclipai/shared";
 import {
@@ -39,6 +40,7 @@ export function SetMyUserSecretDialog({
   onOpenChange: (open: boolean) => void;
   onSaved?: (secret: CompanySecret) => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { pushToast } = useToastActions();
   const [value, setValue] = useState("");
@@ -75,7 +77,7 @@ export function SetMyUserSecretDialog({
       queryClient.invalidateQueries({ queryKey: queryKeys.secrets.myUserSecrets(companyId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.secrets.userDefinitions(companyId) });
       pushToast({
-        title: existingSecret ? "Value updated" : "Value saved",
+        title: t(existingSecret ? "selectorExtra.valueUpdated" : "selectorExtra.valueSaved"),
         body: definition?.name,
         tone: "success",
       });
@@ -100,14 +102,14 @@ export function SetMyUserSecretDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {existingSecret ? "Update your value" : "Set your value"}
-            <UserSecretChip />
+            {t(existingSecret ? "selectorExtra.updateYourValue" : "selectorExtra.setYourValue")}
+            <UserSecretChip label={t("selectorExtra.userSecret")} />
           </DialogTitle>
           <DialogDescription>
             {definition ? (
               <>
-                This value is yours only. It is used when you are the user responsible for a run that
-                needs <span className="font-mono">{definition.key}</span>.
+                {t("selectorExtra.personalValueDescription")}{" "}
+                <span className="font-mono">{definition.key}</span>
               </>
             ) : null}
           </DialogDescription>
@@ -127,45 +129,44 @@ export function SetMyUserSecretDialog({
 
             {isExternal ? (
               <div className="space-y-1">
-                <label className="text-xs font-medium text-foreground">External reference</label>
+                <label className="text-xs font-medium text-foreground">{t("selectorExtra.externalReference")}</label>
                 <Input
                   value={externalRef}
                   onChange={(event) => setExternalRef(event.target.value)}
-                  placeholder="provider reference or ARN"
+                  placeholder={t("selectorExtra.referencePlaceholder")}
                   className="font-mono text-sm"
                   autoFocus
                 />
                 <p className="text-(length:--text-micro) text-muted-foreground">
-                  Points at your own credential in the configured provider. Paperclip stores the
-                  reference, not the value.
+                  {t("selectorExtra.externalReferenceDescription")}
                 </p>
               </div>
             ) : (
               <div className="space-y-1">
-                <label className="text-xs font-medium text-foreground">Your value</label>
+                <label className="text-xs font-medium text-foreground">{t("selectorExtra.yourValue")}</label>
                 <Textarea
                   value={value}
                   onChange={(event) => setValue(event.target.value)}
-                  placeholder="Paste your token or credential"
+                  placeholder={t("selectorExtra.valuePlaceholder")}
                   className="font-mono text-sm min-h-(--sz-80px)"
                   autoFocus
                 />
                 <p className="text-(length:--text-micro) text-muted-foreground">
-                  Stored encrypted. Never shown back to anyone, including admins.
+                  {t("selectorExtra.encryptedDescription")}
                 </p>
               </div>
             )}
 
-            {error ? <p className="text-xs text-destructive">{error}</p> : null}
+            {error ? <p className="text-xs text-destructive">{error === "Failed to save value" ? t("selectorExtra.saveValueFailed") : error}</p> : null}
           </div>
         ) : null}
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={save.isPending}>
-            Cancel
+            {t("selectorExtra.cancel")}
           </Button>
           <Button onClick={() => save.mutate()} disabled={!canSave || save.isPending}>
-            {save.isPending ? "Saving…" : existingSecret ? "Update value" : "Save value"}
+            {t(save.isPending ? "selectorExtra.saving" : existingSecret ? "selectorExtra.updateValue" : "selectorExtra.saveValue")}
           </Button>
         </DialogFooter>
       </DialogContent>

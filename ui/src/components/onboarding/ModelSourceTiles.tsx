@@ -1,3 +1,4 @@
+import { useTranslation } from "@/i18n";
 import { useRef, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
@@ -29,10 +30,6 @@ export type ModelSource = {
   icon: ReactNode;
 };
 
-const CREDENTIAL_TAG_LABEL: Record<CredentialMode, string> = {
-  subscription: "Subscription",
-  api: "API",
-};
 
 /**
  * The credential tag, swapping in a fixed-height slot.
@@ -44,6 +41,7 @@ const CREDENTIAL_TAG_LABEL: Record<CredentialMode, string> = {
  * tile's padding and over the row below.
  */
 export function CredentialTag({ mode }: { mode: CredentialMode }) {
+  const { t } = useTranslation();
   return (
     <span className="relative flex h-4 w-full items-center justify-center overflow-hidden text-(length:--text-micro) text-muted-foreground">
       <AnimatePresence initial={false} mode="sync">
@@ -54,7 +52,7 @@ export function CredentialTag({ mode }: { mode: CredentialMode }) {
           animate={{ opacity: 1, y: 0, transition: TAG_SWAP_ENTER }}
           exit={{ opacity: 0, y: TAG_SWAP_TRAVEL, transition: TAG_SWAP_EXIT }}
         >
-          {CREDENTIAL_TAG_LABEL[mode]}
+          {t(`newAgentConnection.credentialTag.${mode}`)}
         </motion.span>
       </AnimatePresence>
     </span>

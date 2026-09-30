@@ -1,3 +1,4 @@
+import { useTranslation } from "../../i18n";
 import { AppLogo } from "@/pages/apps/AppLogo";
 import { ConnectionChoiceList } from "@/features/connections/ConnectionChoiceList";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   AI_PROVIDERS,
   aiConnectionProblem,
-  aiMethodLabel,
   bindingProblem,
   matchesAiRequirement,
   personalAiDefault,
@@ -13,6 +13,17 @@ import {
   type AiConnectionRequirement,
   type AiConnectionSummary,
 } from "./model";
+
+const PROBLEM_KEYS: Record<string, string> = {
+  "No connection selected. Connect an account to continue.": "newAgentSetup.ai.problem.missing",
+  "Choose a connection compatible with this provider and sign-in method.": "newAgentSetup.ai.problem.compatible",
+  "This connection is no longer available for this agent. Choose another connection.": "newAgentSetup.ai.problem.unavailable",
+  "Choose a company-shared connection.": "newAgentSetup.ai.problem.shared",
+  "This credential is not shared with you. Choose a connection you can use.": "newAgentSetup.ai.problem.notShared",
+  "Needs attention. Reconnect this account to continue.": "newAgentSetup.ai.problem.needsAttention",
+  "Expired. Reconnect this account to continue.": "newAgentSetup.ai.problem.expired",
+  "Revoked. Reconnect this account to continue.": "newAgentSetup.ai.problem.revoked"
+};
 
 export interface AiConnectionPickerProps {
   requirement: AiConnectionRequirement;
@@ -42,6 +53,10 @@ export function AiConnectionPicker({
   onConnect,
   onRetry,
 }: AiConnectionPickerProps) {
+  const { t } = useTranslation();
+  const methodLabel = (provider: AiConnectionBinding["provider"], method: AiConnectionBinding["method"]) =>
+    method === "subscription" ? t(`newAgentSetup.ai.subscription.${provider}`) : t("newAgentSetup.ai.apiKey");
+  const problemLabel = (message: string | null | undefined) => message ? t(PROBLEM_KEYS[message] ?? message, { defaultValue: message }) : message;
   const compatible = connections.filter((connection) =>
     matchesAiRequirement(connection, requirement),
   );
@@ -69,7 +84,7 @@ export function AiConnectionPicker({
       grantId: connection.grantId,
     });
   return (
-    <section className="flex flex-col gap-4" aria-label="AI connection">
+    <section className="flex flex-col gap-4" aria-label={t("newAgentSetup.ai.connection")}>
       <div className="flex items-center gap-3">
         <AppLogo
           name={AI_PROVIDERS[requirement.provider].name}
@@ -79,15 +94,15 @@ export function AiConnectionPicker({
           size={32}
         />
         <div className="flex min-w-0 flex-col gap-1">
-        <h3 className="text-sm font-semibold">AI connection</h3>
+        <h3 className="text-sm font-semibold">{t("newAgentSetup.ai.connection")}</h3>
         <p className="text-xs text-muted-foreground">
           {AI_PROVIDERS[requirement.provider].name}
-          {value && value.mode !== "responsible_user" && ` · ${aiMethodLabel(value.provider, value.method)}`}
+          {value && value.mode !== "responsible_user" && ` · ${methodLabel(value.provider, value.method)}`}
         </p>
         </div>
       </div>
       {loading ? (
-        <div role="status" aria-label="Loading AI connections">
+        <div role="status" aria-label={t("newAgentSetup.ai.loading")}>
           <Skeleton className="h-24 w-full" />
         </div>
       ) : error ? (
@@ -97,7 +112,7 @@ export function AiConnectionPicker({
           </p>
           {onRetry && (
             <Button type="button" variant="outline" onClick={onRetry}>
-              Retry connections
+              {t("newAgentSetup.ai.retry")}
             </Button>
           )}
         </div>
@@ -107,14 +122,14 @@ export function AiConnectionPicker({
             disabled={readOnly}
             selectedId={value?.mode === "responsible_user" ? "responsible_user" : value?.connectionId}
             choices={[
-              { id: "responsible_user", name: "Responsible user’s connection", description: <>
-                <span className="block">For you: {personalDefault?.name ?? "Not connected"}</span>
-                <span className="block">Other users’ tasks use their own {AI_PROVIDERS[requirement.provider].name} connection.</span>
+              { id: "responsible_user", name: t("newAgentSetup.ai.responsible"), description: <>
+                <span className="block">{t("newAgentSetup.ai.forYou", { account: personalDefault?.name ?? t("newAgentSetup.ai.notConnected") })}</span>
+                <span className="block">{t("newAgentSetup.ai.otherUsers", { provider: AI_PROVIDERS[requirement.provider].name })}</span>
               </> },
               ...compatible.filter((connection) => connection.ownership === "shared").map((connection) => ({
                 id: connection.id, name: connection.name,
                 disabled: Boolean(aiConnectionProblem(connection)),
-                description: <>Company shared · {aiMethodLabel(connection.provider, connection.method)}{connection.accountLabel ? ` · ${connection.accountLabel}` : ""}{aiConnectionProblem(connection) ? ` · ${aiConnectionProblem(connection)}` : ""}</>,
+                description: <>{t("newAgentSetup.ai.companyShared")} · {methodLabel(connection.provider, connection.method)}{connection.accountLabel ? ` · ${connection.accountLabel}` : ""}{aiConnectionProblem(connection) ? ` · ${problemLabel(aiConnectionProblem(connection))}` : ""}</>,
               })),
             ]}
             onSelect={(id) => {
@@ -124,7 +139,7 @@ export function AiConnectionPicker({
           />
           {problem && (
             <p role="status" className="text-sm text-destructive">
-              {problem}
+              {problemLabel(problem)}
             </p>
           )}
           {!readOnly && (
@@ -134,7 +149,7 @@ export function AiConnectionPicker({
               className="self-end"
               onClick={onConnect}
             >
-              Connect another account
+              {t("newAgentSetup.ai.connectAnother")}
             </Button>
           )}
         </>

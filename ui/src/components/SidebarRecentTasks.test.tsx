@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { i18n } from "../i18n";
+
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -59,7 +61,8 @@ describe("SidebarRecentTasks", () => {
   let container: HTMLDivElement;
   let root: Root;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     window.localStorage.clear();
     Object.values(mockAgentsApi).forEach((mock) => mock.mockReset());
     Object.values(mockIssuesApi).forEach((mock) => mock.mockReset());
@@ -529,6 +532,26 @@ describe("SidebarRecentTasks", () => {
       reason: "recent_task_restart_retry",
     }), "company-1");
     expect(window.localStorage.getItem("paperclip.recentTasks:company-1:user-1:restart-wake-retry")).toBeNull();
+  });
+
+  it("updates recent-task labels when the language changes without translating task titles", async () => {
+    const issue = {
+      id: "issue-locale", companyId: "company-1", title: "My custom task", identifier: "PAP-9",
+      status: "in_review" as const, externalConversationState: "waiting" as const,
+      hiddenAt: null, updatedAt: new Date(1),
+    };
+    recordRecentTask(issue, "user-1");
+    mockIssuesApi.get.mockResolvedValue(issue);
+    await render();
+    expect(container.textContent).toContain("Recent Tasks");
+    await act(async () => { await i18n.changeLanguage("zh-CN"); });
+    expect(container.textContent).toContain("最近任务");
+    expect(container.textContent).toContain("空闲");
+    expect(container.textContent).toContain("My custom task");
+    expect(container.querySelector('button[aria-label="My custom task的更多操作"]')).not.toBeNull();
+    await act(async () => { await i18n.changeLanguage("en"); });
+    expect(container.textContent).toContain("Recent Tasks");
+    expect(container.textContent).toContain("Idle");
   });
 
   it("prunes tasks that become hidden", async () => {

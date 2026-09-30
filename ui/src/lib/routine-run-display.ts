@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type { RoutineRunSummary, RoutineVariable } from "@paperclipai/shared";
 
 /**
@@ -36,9 +37,9 @@ export function dedupedTriggerLabel(
  * turn it into a one-line "why" for the runs list.
  */
 const SKIP_REASON_LABELS: Record<string, string> = {
-  no_external_activity: "Skipped — no activity since last run",
-  paused: "Skipped — routine paused",
-  worktree_execution_cutoff: "Skipped — worktree execution cutoff",
+  no_external_activity: "routineHistory.skipNoActivity",
+  paused: "routineHistory.skipPaused",
+  worktree_execution_cutoff: "routineHistory.skipCutoff",
 };
 
 /**
@@ -54,11 +55,11 @@ export function runRowSubtitle(
   variables: readonly RoutineVariable[] | null | undefined,
 ): string {
   if (run.status === "failed") {
-    return run.failureReason?.trim() || "Run failed";
+    return run.failureReason?.trim() || t("routineHistory.runFailed");
   }
   if (run.status === "skipped") {
     const reason = run.failureReason?.trim();
-    if (reason && SKIP_REASON_LABELS[reason]) return SKIP_REASON_LABELS[reason];
+    if (reason && SKIP_REASON_LABELS[reason]) return t(SKIP_REASON_LABELS[reason]);
   }
   const payload = run.triggerPayload;
   if (!payload || typeof payload !== "object") return "";

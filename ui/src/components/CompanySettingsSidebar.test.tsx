@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
 
+import { changeLocale } from "@/i18n";
+beforeEach(() => changeLocale("en"));
+afterEach(() => changeLocale("zh-CN"));
+
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

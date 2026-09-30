@@ -1,5 +1,9 @@
+import { beforeEach } from "vitest";
+import { changeLocale } from "../i18n";
 import { describe, expect, it } from "vitest";
 import { formatProjectBudget } from "./utils";
+
+beforeEach(() => changeLocale("en"));
 
 describe("formatProjectBudget", () => {
   it("renders a /mo suffix for monthly budgets", () => {

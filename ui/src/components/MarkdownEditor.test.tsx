@@ -3,6 +3,7 @@
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
+import { changeLocale } from "@/i18n";
 import { buildIssueReferenceHref, buildProjectMentionHref, buildRoutineMentionHref, buildSkillMentionHref } from "@paperclipai/shared";
 import {
   computeMentionMenuPosition,
@@ -32,6 +33,7 @@ const mdxEditorMockState = vi.hoisted(() => ({
   /** Every string handed to the editor's imperative `insertMarkdown`. */
   insertedMarkdownValues: [] as string[],
   suppressHtmlProcessingValues: [] as boolean[],
+  translation: undefined as undefined | ((key: string, defaultValue: string) => string),
 }));
 
 /**
@@ -69,12 +71,14 @@ vi.mock("@mdxeditor/editor", async () => {
       onError,
       className,
       suppressHtmlProcessing,
+      translation,
     }: {
       markdown: string;
       placeholder?: string;
       onChange?: (value: string) => void;
       onError?: (error: unknown) => void;
       suppressHtmlProcessing?: boolean;
+      translation?: (key: string, defaultValue: string) => string;
       className?: string;
     },
     forwardedRef: React.ForwardedRef<{
@@ -87,6 +91,7 @@ vi.mock("@mdxeditor/editor", async () => {
       throw new Error("Rich editor render crashed");
     }
     mdxEditorMockState.markdownValues.push(markdown);
+    mdxEditorMockState.translation = translation;
     mdxEditorMockState.suppressHtmlProcessingValues.push(Boolean(suppressHtmlProcessing));
     const [content, setContent] = React.useState(markdown);
     const editableRef = React.useRef<HTMLDivElement>(null);
@@ -177,6 +182,7 @@ vi.mock("@mdxeditor/editor", async () => {
     codeBlockPlugin: () => ({}),
     codeMirrorPlugin: () => ({}),
     createRootEditorSubscription$: Symbol("createRootEditorSubscription$"),
+    translation$: Symbol("translation$"),
     headingsPlugin: () => ({}),
     imagePlugin: () => ({}),
     linkDialogPlugin: () => ({}),
@@ -290,6 +296,7 @@ describe("MarkdownEditor", () => {
   let originalRangeRect: typeof Range.prototype.getBoundingClientRect;
 
   beforeEach(() => {
+    changeLocale("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     originalRangeRect = Range.prototype.getBoundingClientRect;
@@ -307,6 +314,7 @@ describe("MarkdownEditor", () => {
   });
 
   afterEach(() => {
+    changeLocale("zh-CN");
     container.remove();
     Range.prototype.getBoundingClientRect = originalRangeRect;
     vi.clearAllMocks();
@@ -319,6 +327,26 @@ describe("MarkdownEditor", () => {
     mdxEditorMockState.markdownValues = [];
     mdxEditorMockState.insertedMarkdownValues = [];
     mdxEditorMockState.suppressHtmlProcessingValues = [];
+    mdxEditorMockState.translation = undefined;
+  });
+
+  it("updates editor menu translations without replacing the draft when language changes", async () => {
+    const root = createRoot(container);
+    const onChange = vi.fn();
+    await act(async () => {
+      root.render(<MarkdownEditor value="Keep this draft" onChange={onChange} />);
+    });
+    const editor = container.querySelector('[data-testid="mdx-editor"]');
+    expect(mdxEditorMockState.translation?.("linkPreview.edit", "Edit link URL")).toBe("Edit link URL");
+    await act(async () => {
+      changeLocale("zh-CN");
+      await Promise.resolve();
+    });
+    expect(mdxEditorMockState.translation?.("linkPreview.edit", "Edit link URL")).toBe("编辑链接网址");
+    expect(container.querySelector('[data-testid="mdx-editor"]')).toBe(editor);
+    expect(editor?.textContent).toBe("Keep this draft");
+    expect(onChange).not.toHaveBeenCalled();
+    await act(async () => { root.unmount(); });
   });
 
   it("applies async external value updates once the editor ref becomes ready", async () => {

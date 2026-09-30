@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import type { ReactNode } from "react";
+import { changeLocale } from "../i18n";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import type { RoutineDetail, RoutineRunSummary } from "@paperclipai/shared";
@@ -140,6 +141,7 @@ describe("RoutineOverview", () => {
   let root: Root;
 
   beforeEach(() => {
+  changeLocale("en");
     issueRowRender.mockClear();
     vi.spyOn(Date, "now").mockReturnValue(new Date("2026-08-31T17:00:00.000Z").getTime());
     container = document.createElement("div");
@@ -205,5 +207,21 @@ describe("RoutineOverview", () => {
       .not.toBeNull();
     expect(container.querySelector('a[href="/routines/routine-1/activity"]'))
       .not.toBeNull();
+  });
+  it("switches live overview labels while preserving routine data", () => {
+    flushSync(() => {
+      changeLocale("zh-CN");
+      root.render(<RoutineDetailContext.Provider value={contextFixture()}><RoutineOverview /></RoutineDetailContext.Provider>);
+    });
+    expect(container.textContent).toContain("1 个已启用计划");
+    expect(container.textContent).toContain("下次运行");
+    expect(container.textContent).toContain("默认智能体");
+    expect(container.textContent).toContain("Release Manager");
+    expect(container.textContent).toContain("0 9 * * 1-5 · America/Los_Angeles");
+    flushSync(() => changeLocale("en"));
+    expect(container.textContent).toContain("1 active schedule");
+    expect(container.textContent).toContain("Next run");
+    expect(container.textContent).toContain(routine.description);
+    expect(container.textContent).toContain("Prepare the release digest");
   });
 });

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { changeLocale } from "@/i18n";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -608,6 +609,14 @@ describe("RoutineRunVariablesDialog", () => {
 
     expect(runButton?.disabled).toBe(false);
 
+    await flushUi(() => changeLocale("zh-CN"));
+    expect(document.body.textContent).toContain("运行例行任务");
+    expect(dateInputs[0]?.value).toBe("2026-07-04");
+    expect(dateInputs[1]?.value).toBe("2026-08-01");
+    expect(onSubmit).not.toHaveBeenCalled();
+    await flushUi(() => changeLocale("en"));
+    expect(runButton?.disabled).toBe(false);
+
     await flushUi(() => {
       runButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
@@ -626,3 +635,6 @@ describe("RoutineRunVariablesDialog", () => {
     });
   });
 });
+
+beforeEach(() => { changeLocale("en"); });
+afterEach(() => { changeLocale("zh-CN"); });

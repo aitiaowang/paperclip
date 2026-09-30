@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Agent } from "@paperclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentActionButtons } from "./AgentActionButtons";
+import { changeLocale } from "@/i18n";
 
 const mockNavigate = vi.hoisted(() => vi.fn());
 const mockOpenNewIssue = vi.hoisted(() => vi.fn());
@@ -97,6 +98,7 @@ describe("AgentActionButtons", () => {
   let invalidateQueries: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    changeLocale("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     root = null;
@@ -123,6 +125,7 @@ describe("AgentActionButtons", () => {
     container.remove();
     document.body.innerHTML = "";
     vi.clearAllMocks();
+    changeLocale("en");
   });
 
   function render(agent: Agent, props: Partial<ComponentProps<typeof AgentActionButtons>> = {}) {
@@ -133,6 +136,35 @@ describe("AgentActionButtons", () => {
       </QueryClientProvider>,
     );
   }
+
+  it("updates mounted action labels when the global language changes", async () => {
+    render(makeAgent(), { runLabel: undefined, canRunWithProviderTrace: true });
+    await flushReact();
+    expect(container.textContent).toContain("Assign Task");
+    await act(() => changeLocale("zh-CN"));
+    await flushReact();
+    expect(container.textContent).toContain("分配任务");
+    expect(container.textContent).toContain("立即运行");
+    expect(container.textContent).toContain("暂停");
+    expect(container.querySelector('[aria-label="分配任务"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="立即运行"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="暂停"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="打开 Alpha Agent 的操作菜单"]')).not.toBeNull();
+    expect(mockAgentsApi.invoke).not.toHaveBeenCalled();
+    await act(() => changeLocale("en"));
+    await flushReact();
+    expect(container.textContent).toContain("Run now");
+  });
+
+  it("uses custom action labels as accessible names and localizes resume", async () => {
+    render(makeAgent({ status: "paused" }), { assignLabel: "Custom assign", runLabel: "Custom run" });
+    await flushReact();
+    await act(() => changeLocale("zh-CN"));
+    await flushReact();
+    expect(container.querySelector('[aria-label="Custom assign"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Custom run"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="恢复"]')).not.toBeNull();
+  });
 
   it("replaces the pause slot with Clear error for error agents", async () => {
     render(makeAgent({ status: "error" }));

@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
 
+import { changeLocale } from "@/i18n";
+beforeEach(() => changeLocale("en"));
+afterEach(() => changeLocale("zh-CN"));
+
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -107,6 +111,28 @@ describe("ProfileSettings", () => {
     await flushReact();
     expect(mockAuthApi.updatePreferences).toHaveBeenCalledWith({ companyId: "company-1", keyboardShortcuts: true, expectedUserId: "user-1" }, expect.anything());
     expect(queryClient.getQueryData(["auth", "preferences", "user-1"])).toEqual({ keyboardShortcuts: true });
+    expect(mockAuthApi.updateProfile).not.toHaveBeenCalled();
+    await act(async () => root.unmount());
+  });
+
+  it("keeps an unsaved profile draft while switching language", async () => {
+    const root = createRoot(container);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    await act(async () => {
+      root.render(<QueryClientProvider client={queryClient}><ProfileSettings /></QueryClientProvider>);
+    });
+    await flushReact();
+    await flushReact();
+    const nameInput = container.querySelector<HTMLInputElement>("#profile-name")!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(nameInput, "My draft name");
+      nameInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => { changeLocale("zh-CN"); });
+    expect(container.textContent).toContain("个人资料");
+    expect(container.textContent).toContain("保存个人资料");
+    expect(container.querySelector("#profile-name")).toBe(nameInput);
+    expect(nameInput.value).toBe("My draft name");
     expect(mockAuthApi.updateProfile).not.toHaveBeenCalled();
     await act(async () => root.unmount());
   });

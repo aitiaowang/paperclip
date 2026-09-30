@@ -1,5 +1,8 @@
-import { describe, expect, it } from "vitest";
-import { formatDateTime } from "./utils";
+import { beforeEach, describe, expect, it } from "vitest";
+import { formatDate, formatDateTime, formatProjectBudget, relativeTime } from "./utils";
+import { changeLocale } from "../i18n";
+
+beforeEach(() => changeLocale("en"));
 
 describe("formatDateTime", () => {
   // Local construction avoids assuming the test runner's timezone.
@@ -22,5 +25,16 @@ describe("formatDateTime", () => {
     expect(
       formatDateTime(timestamp.toISOString(), { includeSeconds: true }),
     ).toBe(formatDateTime(timestamp, { includeSeconds: true }));
+  });
+
+  it("uses the app language for dates, relative times and budget units", () => {
+    changeLocale("zh-CN");
+    expect(formatDate(timestamp)).toContain("2026年9月7日");
+    expect(formatDateTime(timestamp, { includeSeconds: true })).toContain("13:02:54");
+    expect(relativeTime(new Date(Date.now() - 5 * 60_000))).toBe("5 分钟前");
+    expect(formatProjectBudget({ amountCents: 120_000, windowKind: "calendar_month_utc" })).toBe("$1,200.00/月");
+    changeLocale("en");
+    expect(formatDate(timestamp)).toBe("Sep 7, 2026");
+    expect(relativeTime(new Date(Date.now() - 5 * 60_000))).toBe("5m ago");
   });
 });

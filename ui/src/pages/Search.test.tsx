@@ -7,6 +7,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Search, buildSearchUrl } from "./Search";
+import { changeLocale } from "../i18n";
 
 const companyState = vi.hoisted(() => ({
   selectedCompanyId: "company-1",
@@ -21,6 +22,7 @@ const dialogState = vi.hoisted(() => ({
 }));
 
 const navigateMock = vi.hoisted(() => vi.fn());
+const sidebarState = vi.hoisted(() => ({ isMobile: false, setSidebarOpen: vi.fn() }));
 
 const searchApiMock = vi.hoisted(() => ({
   search: vi.fn(),
@@ -55,7 +57,7 @@ vi.mock("../context/DialogContext", () => ({
 }));
 
 vi.mock("../context/SidebarContext", () => ({
-  useSidebar: () => ({ isMobile: false, setSidebarOpen: vi.fn() }),
+  useSidebar: () => sidebarState,
 }));
 
 vi.mock("../api/search", () => ({
@@ -161,6 +163,8 @@ describe("Search page", () => {
   let container: HTMLDivElement;
 
   beforeEach(() => {
+    changeLocale("en");
+    sidebarState.isMobile = false;
     container = document.createElement("div");
     document.body.appendChild(container);
     breadcrumbState.setBreadcrumbs.mockReset();
@@ -180,6 +184,75 @@ describe("Search page", () => {
 
   afterEach(() => {
     container.remove();
+  });
+
+  it("switches the initial page, tabs, and operator suggestions live without translating query syntax", async () => {
+    changeLocale("zh-CN");
+    const { root } = renderSearch("/search", container);
+    await waitForAssertion(() => {
+      expect(container.textContent).toContain("输入关键词，搜索组织知识。");
+      expect(container.textContent).toContain("按任务状态筛选");
+      expect(container.textContent).toContain("status:todo");
+      expect(container.querySelector('input[aria-label="搜索内容"]')).not.toBeNull();
+      expect(breadcrumbState.setBreadcrumbs).toHaveBeenLastCalledWith([{ label: "搜索" }]);
+    });
+    flushSync(() => changeLocale("en"));
+    expect(container.textContent).toContain("Type to search organization memory.");
+    expect(container.textContent).toContain("Filter by task status");
+    expect(container.querySelector('input[aria-label="Search query"]')).not.toBeNull();
+    expect(breadcrumbState.setBreadcrumbs).toHaveBeenLastCalledWith([{ label: "Search" }]);
+    flushSync(() => root.unmount());
+  });
+
+  it("localizes the mobile scope dropdown live while preserving scope values and requests", async () => {
+    sidebarState.isMobile = true;
+    changeLocale("zh-CN");
+    searchApiMock.search.mockResolvedValue(emptyResponse());
+    const { root } = renderSearch("/search?q=auth", container);
+    await waitForAssertion(() => expect(container.querySelector('select[aria-label="页面栏目"]')).not.toBeNull());
+    const select = container.querySelector("select")!;
+    expect([...select.options].map((option) => option.value)).toEqual(["all", "issues", "comments", "documents", "artifacts", "agents", "projects"]);
+    expect(select.options[0].textContent).toContain("全部");
+    expect(select.options[1].textContent).toContain("任务");
+    expect(select.options[2].textContent).toContain("评论");
+    flushSync(() => {
+      select.value = "issues";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await waitForAssertion(() => expect(searchApiMock.search).toHaveBeenLastCalledWith("company-1", { q: "auth", scope: "issues", limit: 20 }));
+    flushSync(() => changeLocale("en"));
+    expect(select.getAttribute("aria-label")).toBe("Page section");
+    expect(select.options[0].textContent).toContain("All");
+    expect(select.options[1].textContent).toContain("Tasks");
+    expect(select.value).toBe("issues");
+    flushSync(() => root.unmount());
+  });
+
+  it("switches active filters, sorting, and recovery live while preserving API values", async () => {
+    changeLocale("zh-CN");
+    searchApiMock.search.mockResolvedValue(emptyResponse({
+      zeroResults: {
+        unfilteredTotal: 12,
+        loosenSuggestions: [{ filter: "status", values: ["done"], resultCount: 12, additionalCount: 12 }],
+      },
+    }));
+    const { root } = renderSearch("/search?q=auth&status=done&updatedWithin=7d&sort=updated", container);
+    await waitForAssertion(() => {
+      expect(container.textContent).toContain("当前筛选条件下没有结果");
+      expect(container.textContent).toContain("状态：已完成");
+      expect(container.textContent).toContain("最近 7 天");
+      expect(container.textContent).toContain("最近更新");
+      expect(searchApiMock.search).toHaveBeenLastCalledWith("company-1", {
+        q: "auth", scope: "all", limit: 20, status: ["done"], updatedWithin: "7d", sort: "updated",
+      });
+    });
+    flushSync(() => changeLocale("en"));
+    expect(container.textContent).toContain("No results with these filters");
+    expect(container.textContent).toContain("Status: Done");
+    expect(container.textContent).toContain("Last 7 days");
+    expect(container.textContent).toContain("Recently updated");
+    expect(container.querySelector('input')?.value).toBe("auth");
+    flushSync(() => root.unmount());
   });
 
   it("issues a search request when ?q is in the URL and renders the result", async () => {

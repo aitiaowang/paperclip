@@ -1,3 +1,5 @@
+import { useTranslation } from "@/i18n";
+import type { TFunction } from "i18next";
 import { useState } from "react";
 import type { IssueBlockerAttention } from "@paperclipai/shared";
 import { cn } from "../lib/utils";
@@ -24,46 +26,46 @@ interface StatusIconProps {
   size?: StatusGlyphSize;
 }
 
-function blockedAttentionLabel(blockerAttention: IssueBlockerAttention | null | undefined) {
-  if (!blockerAttention || blockerAttention.state === "none") return "Blocked";
+function blockedAttentionLabel(blockerAttention: IssueBlockerAttention | null | undefined, t: TFunction) {
+  if (!blockerAttention || blockerAttention.state === "none") return t("inboxUi.statusValue.blocked");
 
   if (blockerAttention.reason === "active_child") {
     const count = blockerAttention.coveredBlockerCount;
     if (count === 1 && blockerAttention.sampleBlockerIdentifier) {
-      return `Blocked · waiting on active sub-task ${blockerAttention.sampleBlockerIdentifier}`;
+      return t("inboxUi.activeChildNamed", { identifier: blockerAttention.sampleBlockerIdentifier });
     }
-    if (count === 1) return "Blocked · waiting on 1 active sub-task";
-    return `Blocked · waiting on ${count} active sub-tasks`;
+    if (count === 1) return t("inboxUi.activeChild", { count });
+    return t("inboxUi.activeChild", { count });
   }
 
   if (blockerAttention.reason === "active_dependency") {
     const count = blockerAttention.coveredBlockerCount;
     if (count === 1 && blockerAttention.sampleBlockerIdentifier) {
-      return `Blocked · covered by active dependency ${blockerAttention.sampleBlockerIdentifier}`;
+      return t("inboxUi.activeDependencyNamed", { identifier: blockerAttention.sampleBlockerIdentifier });
     }
-    if (count === 1) return "Blocked · covered by 1 active dependency";
-    return `Blocked · covered by ${count} active dependencies`;
+    if (count === 1) return t("inboxUi.activeDependency", { count });
+    return t("inboxUi.activeDependency", { count });
   }
 
   if (blockerAttention.reason === "stalled_review") {
     const count = blockerAttention.stalledBlockerCount;
     const leaf = blockerAttention.sampleStalledBlockerIdentifier ?? blockerAttention.sampleBlockerIdentifier;
-    if (count === 1 && leaf) return `Blocked · review stalled on ${leaf}`;
-    if (count === 1) return "Blocked · review stalled with no clear next step";
-    return `Blocked · ${count} reviews stalled with no clear next step`;
+    if (count === 1 && leaf) return t("inboxUi.stalledReviewNamed", { identifier: leaf });
+    if (count === 1) return t("inboxUi.stalledReview", { count });
+    return t("inboxUi.stalledReview", { count });
   }
 
   if (blockerAttention.reason === "attention_required") {
     const count = blockerAttention.attentionBlockerCount || blockerAttention.unresolvedBlockerCount;
-    const attentionCopy = `${count} ${count === 1 ? "blocker needs" : "blockers need"} attention`;
+    const attentionCopy = t("inboxUi.attentionCopy", { count });
     const coveredCount = blockerAttention.coveredBlockerCount;
     if (coveredCount > 0) {
-      return `Blocked · ${attentionCopy}; ${coveredCount} covered by active work`;
+      return t("inboxUi.attentionCovered", { attention: attentionCopy, count: coveredCount });
     }
-    return `Blocked · ${attentionCopy}`;
+    return t("inboxUi.attentionRequired", { attention: attentionCopy });
   }
 
-  return "Blocked";
+  return t("inboxUi.statusValue.blocked");
 }
 
 /**
@@ -79,10 +81,12 @@ function blockedAttentionLabel(blockerAttention: IssueBlockerAttention | null | 
  * still rides on the accessible label.
  */
 export function StatusIcon({ status, externalConversationState, blockerAttention, onChange, className, glyphContainerClassName, showLabel, size = "md" }: StatusIconProps) {
+  const { t } = useTranslation();
+  const translatedStatus = (value: string) => t(`inboxUi.statusValue.${value}`, { defaultValue: statusLabel(value) });
   const [open, setOpen] = useState(false);
   const displayStatus = status === "in_review" && externalConversationState === "waiting" ? "idle" : status;
   const isCoveredBlocked = status === "blocked" && blockerAttention?.state === "covered";
-  const ariaLabel = status === "blocked" ? blockedAttentionLabel(blockerAttention) : statusLabel(displayStatus);
+  const ariaLabel = status === "blocked" ? blockedAttentionLabel(blockerAttention, t) : translatedStatus(displayStatus);
   const glyphStatus = isCoveredBlocked ? "in_queue" : displayStatus;
 
   const glyphIcon = (
@@ -103,7 +107,7 @@ export function StatusIcon({ status, externalConversationState, blockerAttention
     return showLabel ? (
       <span className="inline-flex items-center gap-1.5">
         {glyph}
-        <span className="text-sm">{statusLabel(displayStatus)}</span>
+        <span className="text-sm">{translatedStatus(displayStatus)}</span>
       </span>
     ) : (
       glyph
@@ -113,17 +117,17 @@ export function StatusIcon({ status, externalConversationState, blockerAttention
   const trigger = showLabel ? (
     <button
       type="button"
-      aria-label={`Change status (current: ${ariaLabel})`}
+      aria-label={t("inboxUi.changeStatus", { status: ariaLabel })}
       className="inline-flex min-h-5 items-center gap-1.5 cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1 py-0.5 transition-colors"
     >
       {glyph}
-      <span className="text-sm">{statusLabel(displayStatus)}</span>
+      <span className="text-sm">{translatedStatus(displayStatus)}</span>
     </button>
   ) : (
     <button
       type="button"
       data-slot="icon-button"
-      aria-label={`Change status (current: ${ariaLabel})`}
+      aria-label={t("inboxUi.changeStatus", { status: ariaLabel })}
       className="inline-flex cursor-pointer items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-(length:--rad-3) focus-visible:ring-ring"
     >
       {glyph}
@@ -146,7 +150,7 @@ export function StatusIcon({ status, externalConversationState, blockerAttention
             }}
           >
             <StatusIcon status={s} size="lg" />
-            {statusLabel(s)}
+            {translatedStatus(s)}
           </Button>
         ))}
       </PopoverContent>

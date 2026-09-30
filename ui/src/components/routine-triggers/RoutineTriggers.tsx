@@ -1,3 +1,4 @@
+import { useTranslation } from "@/i18n";
 import { useCallback, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarClock, Plus, Webhook } from "lucide-react";
@@ -44,7 +45,7 @@ function saveDraft(key: string, draft: TriggerDraft) {
     sessionStorage.setItem(key, JSON.stringify(draft));
   } catch {
     throw new Error(
-      "Couldn’t save your draft in this browser. Keep this page open and try again.",
+      "routineControls.draftSaveFailed",
     );
   }
 }
@@ -63,6 +64,7 @@ function scheduleCron(draft: TriggerDraft) {
 }
 
 export function RoutineTriggers() {
+  const { t } = useTranslation();
   const ctx = useRoutineDetail();
   const [params, setParams] = useSearchParams();
   const setupId = params.get("triggerSetup");
@@ -91,7 +93,7 @@ export function RoutineTriggers() {
       setError(
         cause instanceof Error
           ? cause.message
-          : "Couldn’t save the trigger. Please try again.",
+          : "routineControls.triggerSaveFailed",
       );
     } finally {
       setBusy(false);
@@ -104,18 +106,18 @@ export function RoutineTriggers() {
     if (setupId !== "new" && !trigger)
       return (
         <p role="alert">
-          This trigger is no longer available.{" "}
+          {t("routineControls.triggerMissing")}{" "}
           <Button variant="link" onClick={closeSetup}>
-            Back to triggers
+            {t("routineControls.backTriggers")}
           </Button>
         </p>
       );
     if (trigger && !trigger.setupPending)
       return (
         <p>
-          This trigger is ready.{" "}
+          {t("routineControls.triggerReady")}{" "}
           <Button variant="link" onClick={closeSetup}>
-            Back to triggers
+            {t("routineControls.backTriggers")}
           </Button>
         </p>
       );
@@ -123,7 +125,7 @@ export function RoutineTriggers() {
       <div className="space-y-4">
         {statusError && (
           <p role="alert" className="text-sm text-destructive">
-            Connection status is unavailable. Retrying…
+            {t("routineControls.statusUnavailable")}
           </p>
         )}
         <TriggerSetup
@@ -142,17 +144,16 @@ export function RoutineTriggers() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {routine.triggers.length}{" "}
-          {routine.triggers.length === 1 ? "trigger" : "triggers"}
+          {t("routineControls.triggerCount", { count: routine.triggers.length })}
         </p>
         <Button size="sm" onClick={() => startSetup("new")}>
           <Plus className="mr-1.5 h-3.5 w-3.5" />
-          Add trigger
+          {t("routineControls.addTrigger")}
         </Button>
       </div>
       {(error || statusError) && (
         <p role="alert" className="text-sm text-destructive">
-          {error || "Connection status is unavailable. Retrying…"}
+          {error ? t(error, { defaultValue: error }) : t("routineControls.statusUnavailable")}
         </p>
       )}
       {removed.map((trigger) => (
@@ -162,12 +163,7 @@ export function RoutineTriggers() {
           className="flex items-center gap-3 rounded-md bg-muted/40 px-4 py-3 text-sm"
         >
           <span className="flex-1">
-            {trigger.kind === "schedule"
-              ? "Schedule"
-              : trigger.kind === "api"
-                ? "API trigger"
-                : "Webhook"}{" "}
-            removed.
+            {t("routineControls.removed", { trigger: t(trigger.kind === "schedule" ? "routineControls.scheduleLabel" : trigger.kind === "api" ? "routineControls.apiTrigger" : "routineControls.webhook") })}
           </span>
           <Button
             variant="ghost"
@@ -184,7 +180,7 @@ export function RoutineTriggers() {
               })
             }
           >
-            Undo
+            {t("routineControls.undo")}
           </Button>
         </div>
       ))}
@@ -193,18 +189,18 @@ export function RoutineTriggers() {
           <p className="text-sm font-medium">{ctx.secretMessage.title}</p>
           {ctx.secretMessage.entries.map((entry) => (
             <div key={entry.webhookUrl} className="space-y-3">
-              <CopyField label="Webhook URL" value={entry.webhookUrl} />
-              <CopyField label="Secret key" value={entry.webhookSecret} />
+              <CopyField label={t("routineControls.webhookUrl")} value={entry.webhookUrl} />
+              <CopyField label={t("routineControls.secretKey")} value={entry.webhookSecret} />
             </div>
           ))}
           <Button variant="outline" onClick={() => ctx.setSecretMessage(null)}>
-            Done
+            {t("routineControls.done")}
           </Button>
         </div>
       )}
       {routine.triggers.length === 0 && (
         <p className="py-6 text-sm text-muted-foreground">
-          Run this routine on a schedule or when another app sends a webhook.
+          {t("routineControls.emptyTriggers")}
         </p>
       )}
       <fieldset disabled={busy} className="min-w-0 space-y-3">
@@ -227,31 +223,31 @@ export function RoutineTriggers() {
             }
             title={
               trigger.kind === "schedule"
-                ? (describeCron(trigger.cronExpression) ?? "Schedule")
+                ? (describeCron(trigger.cronExpression) ?? t("routineControls.scheduleLabel"))
                 : trigger.kind === "api"
-                  ? "API trigger"
+                  ? t("routineControls.apiTrigger")
                   : trigger.signingMode === "github_hmac"
-                    ? "GitHub webhook"
-                    : "Webhook"
+                    ? t("routineControls.githubWebhook")
+                    : t("routineControls.webhook")
             }
             summary={
               trigger.setupPending
-                ? "Setup unfinished · Events only test the connection"
+                ? t("routineControls.unfinished")
                 : !trigger.enabled
-                  ? "Paused"
+                  ? t("routineControls.paused")
                   : trigger.kind === "schedule"
                     ? (trigger.timezone ?? "UTC")
                     : trigger.kind === "api"
-                      ? "Run through the API"
+                      ? t("routineControls.runApi")
                       : trigger.lastWebhookDelivery?.status === "rejected"
-                        ? "Authentication failed · Check the key in your app"
+                        ? t("routineControls.authFailed")
                         : trigger.lastWebhookDelivery?.status === "received" &&
                             !trigger.lastWebhookDelivery.test
-                          ? "Receiving events"
-                          : "Ready · Waiting for an event"
+                          ? t("routineControls.receiving")
+                          : t("routineControls.ready")
             }
             expanded={expanded === trigger.id}
-            editLabel={trigger.setupPending ? "Resume setup" : undefined}
+            editLabel={trigger.setupPending ? t("routineControls.resume") : undefined}
             onEdit={() =>
               trigger.setupPending
                 ? startSetup(trigger.id)
@@ -266,7 +262,7 @@ export function RoutineTriggers() {
           >
             {trigger.setupPending ? (
               <Button onClick={() => startSetup(trigger.id)}>
-                Resume setup
+                {t("routineControls.resume")}
               </Button>
             ) : trigger.kind === "schedule" ? (
               <ScheduleSettings
@@ -280,7 +276,7 @@ export function RoutineTriggers() {
               />
             ) : trigger.kind === "api" ? (
               <p className="text-sm text-muted-foreground">
-                This trigger starts the routine through the API.
+                {t("routineControls.apiHelp")}
               </p>
             ) : (
               <WebhookSettings
@@ -301,7 +297,7 @@ export function RoutineTriggers() {
                   })
                 }
               >
-                {trigger.enabled ? "Pause trigger" : "Enable trigger"}
+                {trigger.enabled ? t("routineControls.pauseTrigger") : t("routineControls.enableTrigger")}
               </Button>
             )}
           </RoutineTriggerCard>
@@ -326,6 +322,7 @@ function TriggerSetup({
   onExit: () => void;
   onRefresh: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [, setParams] = useSearchParams();
   const storagePrefix = `routine-trigger-draft:${companyId}:${routineId}:`;
   const createdRef = useRef<RoutineTrigger | undefined>(trigger);
@@ -397,7 +394,7 @@ function TriggerSetup({
         });
       else {
         if (!createdRef.current)
-          throw new Error("Create the webhook before finishing setup.");
+          throw new Error("routineControls.createFirst");
         await routinesApi.updateTrigger(createdRef.current.id, {
           setupPending: false,
         });
@@ -448,6 +445,7 @@ function ScheduleSettings({
   onSave: (patch: Record<string, unknown>) => Promise<void>;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const [cronExpression, setCron] = useState(
     trigger.cronExpression ?? "0 9 * * *",
   );
@@ -463,7 +461,7 @@ function ScheduleSettings({
         onValidityChange={setValid}
       />
       <Label>
-        Time zone
+        {t("routineControls.timezone")}
         <Input
           value={timezone}
           onChange={(event) => setTimezone(event.target.value)}
@@ -471,7 +469,7 @@ function ScheduleSettings({
       </Label>
       {error && (
         <p role="alert" className="text-sm text-destructive">
-          {error}
+          {t(error, { defaultValue: error })}
         </p>
       )}
       <div className="flex gap-2">
@@ -486,17 +484,17 @@ function ScheduleSettings({
               setError(
                 cause instanceof Error
                   ? cause.message
-                  : "Couldn’t save schedule.",
+                  : "routineControls.scheduleSaveFailed",
               );
             } finally {
               setBusy(false);
             }
           }}
         >
-          Save schedule
+          {t("routineControls.saveSchedule")}
         </Button>
         <Button variant="outline" onClick={onCancel}>
-          Cancel
+          {t("routineControls.cancel")}
         </Button>
       </div>
     </fieldset>
@@ -512,6 +510,7 @@ function WebhookSettings({
   routineTitle: string;
   onRefresh: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [secret, setSecret] = useState("");
   const [replace, setReplace] = useState(false);
   const [checkBaseline, setCheckBaseline] = useState<string | null>(null);
@@ -536,15 +535,15 @@ function WebhookSettings({
           )}
         />
       )}
-      <CopyField label="Webhook URL" value={trigger.webhookUrl ?? ""} />
+      <CopyField label={t("routineControls.webhookUrl")} value={trigger.webhookUrl ?? ""} />
       {trigger.signingMode !== "none" && (
         <div className="space-y-2">
           {secret ? (
             <CopyField
               label={
                 trigger.signingMode === "bearer"
-                  ? "Authorization header value"
-                  : "Secret key"
+                  ? t("routineControls.authorizationValue")
+                  : t("routineControls.secretKey")
               }
               value={
                 trigger.signingMode === "bearer" ? `Bearer ${secret}` : secret
@@ -552,29 +551,27 @@ function WebhookSettings({
             />
           ) : (
             <p className="text-sm text-muted-foreground">
-              The secret key is hidden.
+              {t("routineControls.keyHidden")}
             </p>
           )}
           <Button variant="outline" size="sm" onClick={() => setReplace(true)}>
-            Replace key
+            {t("routineControls.replaceKey")}
           </Button>
           {secret && (
             <Button variant="ghost" size="sm" onClick={() => setSecret("")}>
-              Hide key
+              {t("routineControls.hideKey")}
             </Button>
           )}
         </div>
       )}
       {trigger.signingMode === "none" && (
         <p className="text-sm text-muted-foreground">
-          This webhook uses its URL as the shared secret.
+          {t("routineControls.urlSecret")}
         </p>
       )}
       {trigger.signingMode === "hmac_sha256" && (
         <p className="text-sm text-muted-foreground">
-          Sign the timestamp, a period, and the exact JSON body with
-          HMAC-SHA256. Send X-Paperclip-Timestamp and X-Paperclip-Signature:
-          sha256=&lt;signature&gt;.
+          {t("routineControls.legacyHmac")}
         </p>
       )}
       <Button
@@ -583,20 +580,19 @@ function WebhookSettings({
           setCheckBaseline(trigger.lastWebhookDelivery?.receivedAt ?? "")
         }
       >
-        Check connection
+        {t("routineControls.checkConnection")}
       </Button>
       <Dialog open={replace} onOpenChange={setReplace}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Replace the webhook key?</DialogTitle>
+            <DialogTitle>{t("routineControls.replaceKeyTitle")}</DialogTitle>
             <DialogDescription>
-              The old key will stop working. Update your sending app with the
-              new key.
+              {t("routineControls.replaceKeyHelp")}
             </DialogDescription>
           </DialogHeader>
           {error && (
             <p role="alert" className="text-sm text-destructive">
-              {error}
+              {t(error, { defaultValue: error })}
             </p>
           )}
           <Button
@@ -615,14 +611,14 @@ function WebhookSettings({
                 setError(
                   cause instanceof Error
                     ? cause.message
-                    : "Couldn’t replace the key.",
+                    : "routineControls.replaceKeyFailed",
                 );
               } finally {
                 setBusy(false);
               }
             }}
           >
-            Replace key
+            {t("routineControls.replaceKey")}
           </Button>
         </DialogContent>
       </Dialog>
@@ -634,18 +630,17 @@ function WebhookSettings({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Check connection</DialogTitle>
+            <DialogTitle>{t("routineControls.checkConnection")}</DialogTitle>
             <DialogDescription>
-              This webhook is already enabled. Events sent now can start the
-              routine. Send an event from your app to check delivery.
+              {t("routineControls.enabledTestHelp")}
             </DialogDescription>
           </DialogHeader>
           <p role="status" className="text-sm">
             {checked
               ? delivery.status === "received"
-                ? "Event received · Authentication passed"
-                : "Event arrived, but authentication failed. Check the key in your app."
-              : "Waiting for an event from your app…"}
+                ? t("routineControls.receivedAuthenticated")
+                : t("routineControls.receivedAuthFailed")
+              : t("routineControls.waitingEvent")}
           </p>
         </DialogContent>
       </Dialog>

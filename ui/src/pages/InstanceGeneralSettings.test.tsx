@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
 
+import { changeLocale } from "@/i18n";
+beforeEach(() => changeLocale("en"));
+afterEach(() => changeLocale("zh-CN"));
+
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -91,6 +95,20 @@ describe("InstanceGeneralSettings sign-out", () => {
     return Array.from(container.querySelectorAll("button"))
       .find((button) => button.textContent?.trim() === "Sign out");
   }
+
+  it("switches visible labels while keeping preference API values unchanged", async () => {
+    await renderPage(SELF_HOSTED_HEALTH);
+    flushSync(() => changeLocale("zh-CN"));
+    await vi.waitFor(() => expect(container.textContent).toContain("备份保留"));
+    expect(container.textContent).toContain("私有认证");
+    expect(container.textContent).not.toContain("Deployment and auth");
+    const shareButton = Array.from(container.querySelectorAll("button"))
+      .find((button) => button.textContent?.includes("始终允许"));
+    flushSync(() => shareButton?.click());
+    await vi.waitFor(() => expect(mockInstanceSettingsApi.updateGeneral).toHaveBeenCalledWith(
+      { feedbackDataSharingPreference: "allowed" }, expect.anything(),
+    ));
+  });
 
   it("uses the Cloud-managed top-level logout without calling local auth", async () => {
     await renderPage(CLOUD_HEALTH);

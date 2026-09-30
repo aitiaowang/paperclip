@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CommandPalette } from "./CommandPalette";
 import { queryKeys } from "../lib/queryKeys";
+import { changeLocale } from "../i18n";
 
 function act(callback: () => void | Promise<void>) {
   let result: void | Promise<void> | undefined;
@@ -193,6 +194,7 @@ describe("CommandPalette", () => {
   let container: HTMLDivElement;
 
   beforeEach(() => {
+    changeLocale("en");
     container = document.createElement("div");
     document.body.appendChild(container);
     dialogState.openNewIssue.mockReset();
@@ -220,6 +222,22 @@ describe("CommandPalette", () => {
 
   afterEach(() => {
     container.remove();
+  });
+
+  it("switches command actions live and preserves search operators", async () => {
+    changeLocale("zh-CN");
+    const { root } = renderWithQueryClient(<CommandPalette />, container);
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
+    });
+    expect(container.textContent).toContain("创建任务");
+    expect(container.textContent).toContain("概览");
+    expect(container.textContent).toContain("assignee:me");
+    act(() => changeLocale("en"));
+    expect(container.textContent).toContain("Create new task");
+    expect(container.textContent).toContain("Dashboard");
+    expect(container.textContent).toContain("assignee:me");
+    act(() => root.unmount());
   });
 
   it("includes routine execution issues in search queries", async () => {

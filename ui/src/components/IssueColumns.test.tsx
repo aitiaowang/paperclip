@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 
+import { changeLocale } from "../i18n";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 import type { Issue } from "@paperclipai/shared";
 import {
   InboxIssueMetaLeading,
@@ -236,3 +237,6 @@ describe("InboxIssueTrailingColumns attribution", () => {
     expect(text).not.toContain("Unknown");
   });
 });
+
+beforeEach(() => { changeLocale("en"); });
+afterEach(() => { changeLocale("zh-CN"); });

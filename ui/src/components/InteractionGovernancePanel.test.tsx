@@ -1,9 +1,13 @@
 // @vitest-environment jsdom
 
+import { changeLocale } from "@/i18n";
+beforeEach(() => changeLocale("en"));
+afterEach(() => changeLocale("zh-CN"));
+
 import { act as reactAct } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ISSUE_THREAD_INTERACTION_KINDS as INTERACTION_KINDS,
   type InteractionResolverGovernance,

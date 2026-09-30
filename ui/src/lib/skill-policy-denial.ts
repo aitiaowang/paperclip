@@ -44,6 +44,7 @@ export const SKILL_PLATFORM_INVARIANT_CODES = [
 export const SKILL_POLICY_ADMIN_CODE = "skill_policy_admin_required";
 
 export type SkillDenialState = "policy" | "platform" | "platform_admin";
+export type SkillDenialAction = string | { key: string; defaultValue?: string };
 
 export interface SkillDenial {
   /** Which visual treatment applies. `policy` = State B, `platform*` = State C. */
@@ -56,6 +57,8 @@ export interface SkillDenial {
   title: string;
   /** Human remediation — never a curl/API-key snippet. */
   remediation: string;
+  /** UI-only translation metadata; server remediation remains verbatim. */
+  i18n?: { titleKey: string; remediationKey?: string; action?: SkillDenialAction };
 }
 
 const DEFAULT_POLICY_REMEDIATION =
@@ -103,7 +106,7 @@ function asString(value: unknown): string | null {
  */
 export function classifySkillDenial(
   error: unknown,
-  actionLabel?: string,
+  actionLabel?: SkillDenialAction,
 ): SkillDenial | null {
   if (!(error instanceof ApiError)) return null;
 
@@ -118,8 +121,9 @@ export function classifySkillDenial(
     || reason === "explicit_rule"
     || reason === "policy_default";
   if (isPolicyDenial) {
-    const title = actionLabel
-      ? `${actionLabel} is restricted by your organization policy.`
+    const label = typeof actionLabel === "string" ? actionLabel : actionLabel?.defaultValue;
+    const title = label
+      ? `${label} is restricted by your organization policy.`
       : "This action is restricted by your organization policy.";
     return {
       state: "policy",
@@ -127,6 +131,11 @@ export function classifySkillDenial(
       reason,
       title,
       remediation: remediation ?? DEFAULT_POLICY_REMEDIATION,
+      i18n: {
+        titleKey: actionLabel ? "skillsDialogs.policy.actionRestricted" : "skillsDialogs.policy.restricted",
+        remediationKey: remediation ? undefined : "skillsDialogs.policy.policyRemediation",
+        action: actionLabel,
+      },
     };
   }
 
@@ -138,6 +147,10 @@ export function classifySkillDenial(
       reason,
       title: "This change needs administration access.",
       remediation: remediation ?? DEFAULT_ADMIN_REMEDIATION,
+      i18n: {
+        titleKey: "skillsDialogs.policy.adminRequired",
+        remediationKey: remediation ? undefined : "skillsDialogs.policy.adminRemediation",
+      },
     };
   }
 
@@ -155,6 +168,10 @@ export function classifySkillDenial(
         remediation
         ?? (code && PLATFORM_REMEDIATIONS[code])
         ?? "Fix the flagged issue and try again.",
+      i18n: {
+        titleKey: code && PLATFORM_TITLES[code] ? `skillsDialogs.policy.title.${code}` : "skillsDialogs.policy.safetyBlocked",
+        remediationKey: remediation ? undefined : code && PLATFORM_REMEDIATIONS[code] ? `skillsDialogs.policy.remediation.${code}` : "skillsDialogs.policy.fixAndRetry",
+      },
     };
   }
 
